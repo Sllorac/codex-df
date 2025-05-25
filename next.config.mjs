@@ -10,22 +10,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'export',
+  // Remover configurações problemáticas para deploy
   trailingSlash: true,
-  distDir: 'out',
-  // GARANTIR QUE OS ARQUIVOS DE ÁUDIO SEJAM INCLUÍDOS
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.(mp3|wav|ogg)$/,
-      use: {
-        loader: 'file-loader',
-        options: {
-          publicPath: '/_next/static/sounds/',
-          outputPath: 'static/sounds/',
-        },
+  // Configuração mais simples para áudios
+  async rewrites() {
+    return [
+      {
+        source: '/sounds/:path*',
+        destination: '/sounds/:path*',
       },
-    });
-    return config;
+    ]
   },
 };
 
