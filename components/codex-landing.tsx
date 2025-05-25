@@ -129,9 +129,81 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
   // 🎵 URLs DOS ÁUDIOS ORIGINAIS DO GITHUB
   const ORIGINAL_AUDIO_URLS = {
-    typing: "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
-    error: "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
-    wistful: "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
+    typing: [
+      "/sounds/typewriter-typing-68696.mp3",
+      "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
+      "https://github.com/Sllorac/codex-df/raw/main/public/sounds/typewriter-typing-68696.mp3",
+    ],
+    error: [
+      "/sounds/error_sound-221445.mp3",
+      "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
+      "https://github.com/Sllorac/codex-df/raw/main/public/sounds/error_sound-221445.mp3",
+    ],
+    wistful: [
+      "/sounds/wistful-1-39105.mp3",
+      "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
+      "https://github.com/Sllorac/codex-df/raw/main/public/sounds/wistful-1-39105.mp3",
+    ],
+  }
+
+  // 🎵 FUNÇÃO PARA TENTAR CARREGAR ÁUDIO COM MÚLTIPLAS FONTES
+  const tryLoadAudio = async (urls: string[], type: string): Promise<HTMLAudioElement | null> => {
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        addDebugLog(`🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}`)
+
+        const audio = new Audio()
+
+        // Configurações mais permissivas
+        audio.crossOrigin = "anonymous"
+        audio.preload = "auto"
+        audio.volume = type === "typing" ? 0.3 : 0.4
+
+        if (type === "typing" || type === "error") {
+          audio.loop = true
+        }
+
+        // Promise para aguardar carregamento
+        const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
+          }, 5000) // 5 segundos de timeout
+
+          audio.addEventListener(
+            "canplaythrough",
+            () => {
+              clearTimeout(timeout)
+              addDebugLog(`✅ ${type} carregado da fonte ${i + 1}!`)
+              resolve(audio)
+            },
+            { once: true },
+          )
+
+          audio.addEventListener(
+            "error",
+            (e) => {
+              clearTimeout(timeout)
+              reject(new Error(`Erro ao carregar ${type} da fonte ${i + 1}: ${e.type}`))
+            },
+            { once: true },
+          )
+
+          // Tentar carregar
+          audio.src = urls[i]
+          audio.load()
+        })
+
+        const loadedAudio = await loadPromise
+        return loadedAudio
+      } catch (error) {
+        addDebugLog(`❌ Fonte ${i + 1} falhou para ${type}: ${error}`)
+        if (i === urls.length - 1) {
+          addDebugLog(`⚠️ Todas as fontes falharam para ${type}`)
+          return null
+        }
+      }
+    }
+    return null
   }
 
   // FUNÇÃO PARA ADICIONAR LOG DE DEBUG
@@ -187,106 +259,67 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     return false
   }
 
-  // 🎵 INICIALIZA OS ÁUDIOS ORIGINAIS DO GITHUB COM FALLBACK
+  // 🎵 INICIALIZA OS ÁUDIOS COM MÚLTIPLAS TENTATIVAS
   useEffect(() => {
-    const setupOriginalAudio = async () => {
+    const setupAudioSystem = async () => {
+      addDebugLog("🚀 Iniciando sistema de áudio ROBUSTO...")
+
       try {
-        addDebugLog("🚀 Tentando carregar áudios ORIGINAIS do GitHub...")
+        // Tentar carregar cada áudio
+        const [typingAudio, errorAudio, wistfulAudio] = await Promise.allSettled([
+          tryLoadAudio(ORIGINAL_AUDIO_URLS.typing, "typing"),
+          tryLoadAudio(ORIGINAL_AUDIO_URLS.error, "error"),
+          tryLoadAudio(ORIGINAL_AUDIO_URLS.wistful, "wistful"),
+        ])
 
-        // CONFIGURAR ÁUDIO DE DIGITAÇÃO ORIGINAL
-        const typingAudio = new Audio()
-        typingAudio.src = ORIGINAL_AUDIO_URLS.typing
-        typingAudio.preload = "metadata"
-        typingAudio.loop = true
-        typingAudio.volume = 0.3
-        typingAudio.crossOrigin = "anonymous"
+        // Verificar resultados
+        let loadedCount = 0
 
-        typingAudio.addEventListener(
-          "canplaythrough",
-          () => {
-            addDebugLog("✅ Áudio ORIGINAL de digitação carregado!")
-            setAudioLoadStatus((prev) => ({ ...prev, typing: true }))
-            setAudioReady(true)
-          },
-          { once: true },
-        )
+        if (typingAudio.status === "fulfilled" && typingAudio.value) {
+          typingAudioRef.current = typingAudio.value
+          setAudioLoadStatus((prev) => ({ ...prev, typing: true }))
+          loadedCount++
+          addDebugLog("✅ Áudio de digitação CARREGADO!")
+        } else {
+          addDebugLog("❌ Áudio de digitação FALHOU")
+        }
 
-        typingAudio.addEventListener("error", (e) => {
-          addDebugLog(`❌ Erro no áudio original de digitação: ${e}`)
-          setAudioLoadStatus((prev) => ({ ...prev, typing: false }))
-        })
+        if (errorAudio.status === "fulfilled" && errorAudio.value) {
+          errorAudioRef.current = errorAudio.value
+          setAudioLoadStatus((prev) => ({ ...prev, error: true }))
+          loadedCount++
+          addDebugLog("✅ Áudio de erro CARREGADO!")
+        } else {
+          addDebugLog("❌ Áudio de erro FALHOU")
+        }
 
-        typingAudioRef.current = typingAudio
+        if (wistfulAudio.status === "fulfilled" && wistfulAudio.value) {
+          wistfulAudioRef.current = wistfulAudio.value
+          setAudioLoadStatus((prev) => ({ ...prev, wistful: true }))
+          loadedCount++
+          addDebugLog("✅ Áudio wistful CARREGADO!")
 
-        // CONFIGURAR ÁUDIO DE ERRO ORIGINAL
-        const errorAudio = new Audio()
-        errorAudio.src = ORIGINAL_AUDIO_URLS.error
-        errorAudio.preload = "metadata"
-        errorAudio.loop = true
-        errorAudio.volume = 0.4
-        errorAudio.crossOrigin = "anonymous"
+          // Configurar evento de fim para wistful
+          wistfulAudio.value.addEventListener("ended", () => {
+            addDebugLog("🎵 Áudio wistful ORIGINAL terminou")
+            setIsWistfulSound(false)
+          })
+        } else {
+          addDebugLog("❌ Áudio wistful FALHOU")
+        }
 
-        errorAudio.addEventListener(
-          "canplaythrough",
-          () => {
-            addDebugLog("✅ Áudio ORIGINAL de erro carregado!")
-            setAudioLoadStatus((prev) => ({ ...prev, error: true }))
-          },
-          { once: true },
-        )
-
-        errorAudio.addEventListener("error", (e) => {
-          addDebugLog(`❌ Erro no áudio original de erro: ${e}`)
-          setAudioLoadStatus((prev) => ({ ...prev, error: false }))
-        })
-
-        errorAudioRef.current = errorAudio
-
-        // CONFIGURAR ÁUDIO WISTFUL ORIGINAL
-        const wistfulAudio = new Audio()
-        wistfulAudio.src = ORIGINAL_AUDIO_URLS.wistful
-        wistfulAudio.preload = "metadata"
-        wistfulAudio.loop = false
-        wistfulAudio.volume = 0.4
-        wistfulAudio.crossOrigin = "anonymous"
-
-        wistfulAudio.addEventListener(
-          "canplaythrough",
-          () => {
-            addDebugLog("✅ Áudio ORIGINAL wistful carregado!")
-            setAudioLoadStatus((prev) => ({ ...prev, wistful: true }))
-          },
-          { once: true },
-        )
-
-        wistfulAudio.addEventListener("error", (e) => {
-          addDebugLog(`❌ Erro no áudio original wistful: ${e}`)
-          setAudioLoadStatus((prev) => ({ ...prev, wistful: false }))
-        })
-
-        wistfulAudio.addEventListener("ended", () => {
-          addDebugLog("🎵 Áudio wistful ORIGINAL terminou")
-          setIsWistfulSound(false)
-        })
-
-        wistfulAudioRef.current = wistfulAudio
-
-        addDebugLog("🎵 Todos os áudios ORIGINAIS configurados!")
-
-        // Verificar se algum áudio falhou e ativar fallback
-        setTimeout(() => {
-          const allLoaded = Object.values(audioLoadStatus).every((status) => status)
-          if (!allLoaded) {
-            addDebugLog("⚠️ Alguns áudios originais falharam, ativando fallback sintético...")
-            setAudioMode("synthetic")
-            initSyntheticAudio()
-          } else {
-            addDebugLog("✅ Todos os áudios ORIGINAIS carregados com sucesso!")
-            setAudioMode("original")
-          }
-        }, 3000) // Aguarda 3 segundos para verificar
+        // Decidir modo baseado nos sucessos
+        if (loadedCount >= 2) {
+          setAudioMode("original")
+          setAudioReady(true)
+          addDebugLog(`🎵 Modo ORIGINAL ativado! (${loadedCount}/3 áudios carregados)`)
+        } else {
+          setAudioMode("synthetic")
+          initSyntheticAudio()
+          addDebugLog(`🔊 Modo SINTÉTICO ativado! (apenas ${loadedCount}/3 áudios carregados)`)
+        }
       } catch (error) {
-        addDebugLog(`⚠️ Erro geral nos áudios originais: ${error}`)
+        addDebugLog(`⚠️ Erro geral no sistema de áudio: ${error}`)
         setAudioMode("synthetic")
         initSyntheticAudio()
       }
@@ -299,7 +332,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           const ctx = new AudioContextClass()
           setAudioContext(ctx)
           setAudioReady(true)
-          addDebugLog("✅ AudioContext SINTÉTICO ativado como fallback!")
+          addDebugLog("✅ AudioContext SINTÉTICO ativado!")
         } else {
           addDebugLog("❌ AudioContext não suportado")
         }
@@ -308,7 +341,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       }
     }
 
-    setupOriginalAudio()
+    setupAudioSystem()
 
     return () => {
       // Limpar todos os áudios
@@ -326,39 +359,75 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     }
   }, [])
 
-  // DETECTA PRIMEIRA INTERAÇÃO DO USUÁRIO
+  // DETECTA PRIMEIRA INTERAÇÃO - VERSÃO MAIS AGRESSIVA
   useEffect(() => {
-    const handleFirstInteraction = () => {
-      setUserInteracted(true)
-      addDebugLog("👆 Primeira interação detectada!")
+    const handleFirstInteraction = (event: Event) => {
+      if (!userInteracted) {
+        setUserInteracted(true)
+        addDebugLog(`👆 Primeira interação detectada! (${event.type})`)
 
-      // Tenta carregar os áudios após interação
-      if (audioMode === "original" && typingAudioRef.current) {
-        try {
-          typingAudioRef.current.load()
-          addDebugLog("🔄 Recarregando áudios ORIGINAIS após interação")
-        } catch (error) {
-          addDebugLog(`⚠️ Erro ao recarregar: ${error}`)
+        // Resume AudioContext se necessário
+        if (audioContext && audioContext.state === "suspended") {
+          audioContext
+            .resume()
+            .then(() => {
+              addDebugLog("🔊 AudioContext resumido!")
+            })
+            .catch((err) => {
+              addDebugLog(`⚠️ Erro ao resumir AudioContext: ${err}`)
+            })
         }
-      }
 
-      // Resume AudioContext se necessário
-      if (audioContext && audioContext.state === "suspended") {
-        audioContext.resume().then(() => {
-          addDebugLog("🔊 AudioContext resumido!")
-        })
+        // Tentar tocar um som de teste
+        setTimeout(() => {
+          if (audioMode === "original" && typingAudioRef.current) {
+            try {
+              const testPromise = typingAudioRef.current.play()
+              if (testPromise) {
+                testPromise
+                  .then(() => {
+                    addDebugLog("🎵 Teste de áudio original OK!")
+                    typingAudioRef.current?.pause()
+                    typingAudioRef.current!.currentTime = 0
+                  })
+                  .catch((err) => {
+                    addDebugLog(`⚠️ Teste de áudio falhou: ${err}`)
+                  })
+              }
+            } catch (error) {
+              addDebugLog(`⚠️ Erro no teste de áudio: ${error}`)
+            }
+          }
+        }, 100)
       }
     }
 
     if (!userInteracted) {
-      const events = ["click", "touchstart", "keydown", "mousedown"]
+      // Eventos mais abrangentes
+      const events = [
+        "click",
+        "touchstart",
+        "touchend",
+        "mousedown",
+        "mouseup",
+        "keydown",
+        "keyup",
+        "scroll",
+        "mousemove",
+        "pointerdown",
+      ]
+
       events.forEach((event) => {
-        document.addEventListener(event, handleFirstInteraction, { once: true })
+        document.addEventListener(event, handleFirstInteraction, {
+          once: true,
+          passive: true,
+          capture: true,
+        })
       })
 
       return () => {
         events.forEach((event) => {
-          document.removeEventListener(event, handleFirstInteraction)
+          document.removeEventListener(event, handleFirstInteraction, true)
         })
       }
     }
