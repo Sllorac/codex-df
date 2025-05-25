@@ -49,13 +49,10 @@ export default function CodexLanding() {
   const [isErrorSound, setIsErrorSound] = useState(false)
   const [isWistfulSound, setIsWistfulSound] = useState(false)
 
-  // REFs para os áudios originais do GitHub
+  // REFs para os áudios
   const typingAudioRef = useRef<HTMLAudioElement | null>(null)
   const errorAudioRef = useRef<HTMLAudioElement | null>(null)
   const wistfulAudioRef = useRef<HTMLAudioElement | null>(null)
-
-  // SUBSTITUIR por:
-  const [audioMode, setAudioMode] = useState<"original">("original")
 
   const [audioLoadStatus, setAudioLoadStatus] = useState({
     typing: false,
@@ -121,36 +118,43 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     },
   ]
 
-  // 🎵 URLs DOS ÁUDIOS ORIGINAIS DO GITHUB
-  const ORIGINAL_AUDIO_URLS = {
-    typing: [
-      "/sounds/typewriter-typing-68696.mp3",
-      "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
-      "https://github.com/Sllorac/codex-df/raw/main/public/sounds/typewriter-typing-68696.mp3",
-    ],
-    error: [
-      "/sounds/error_sound-221445.mp3",
-      "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
-      "https://github.com/Sllorac/codex-df/raw/main/public/sounds/error_sound-221445.mp3",
-    ],
-    wistful: [
-      "/sounds/wistful-1-39105.mp3",
-      "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
-      "https://github.com/Sllorac/codex-df/raw/main/public/sounds/wistful-1-39105.mp3",
-    ],
+  // 🎵 URLs DOS ÁUDIOS COM DOMÍNIO ABSOLUTO
+  const getAudioUrls = () => {
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+    return {
+      typing: [
+        `${baseUrl}/sounds/typewriter-typing-68696.mp3`,
+        "/sounds/typewriter-typing-68696.mp3",
+        "https://sociedadesecretacodex.vercel.app/sounds/typewriter-typing-68696.mp3",
+        "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
+      ],
+      error: [
+        `${baseUrl}/sounds/error_sound-221445.mp3`,
+        "/sounds/error_sound-221445.mp3",
+        "https://sociedadesecretacodex.vercel.app/sounds/error_sound-221445.mp3",
+        "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
+      ],
+      wistful: [
+        `${baseUrl}/sounds/wistful-1-39105.mp3`,
+        "/sounds/wistful-1-39105.mp3",
+        "https://sociedadesecretacodex.vercel.app/sounds/wistful-1-39105.mp3",
+        "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
+      ],
+    }
   }
 
   // 🎵 FUNÇÃO PARA TENTAR CARREGAR ÁUDIO COM MÚLTIPLAS FONTES
   const tryLoadAudio = async (urls: string[], type: string): Promise<HTMLAudioElement | null> => {
     for (let i = 0; i < urls.length; i++) {
       try {
-        console.log(`🎵 AUDIO: 🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}`)
+        console.log(`🎵 AUDIO: 🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}: ${urls[i]}`)
 
         const audio = new Audio()
 
-        // Configurações mais permissivas
+        // Configurações otimizadas para Vercel
         audio.crossOrigin = "anonymous"
-        audio.preload = "auto"
+        audio.preload = "metadata"
         audio.volume = type === "typing" ? 0.3 : 0.4
 
         if (type === "typing" || type === "error") {
@@ -161,26 +165,25 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
-          }, 5000) // 5 segundos de timeout
+          }, 10000) // 10 segundos de timeout
 
-          audio.addEventListener(
-            "canplaythrough",
-            () => {
-              clearTimeout(timeout)
-              console.log(`🎵 AUDIO: ✅ ${type} carregado da fonte ${i + 1}!`)
-              resolve(audio)
-            },
-            { once: true },
-          )
+          const onCanPlay = () => {
+            clearTimeout(timeout)
+            console.log(`🎵 AUDIO: ✅ ${type} carregado da fonte ${i + 1}!`)
+            audio.removeEventListener("canplaythrough", onCanPlay)
+            audio.removeEventListener("error", onError)
+            resolve(audio)
+          }
 
-          audio.addEventListener(
-            "error",
-            (e) => {
-              clearTimeout(timeout)
-              reject(new Error(`Erro ao carregar ${type} da fonte ${i + 1}: ${e.type}`))
-            },
-            { once: true },
-          )
+          const onError = (e: any) => {
+            clearTimeout(timeout)
+            audio.removeEventListener("canplaythrough", onCanPlay)
+            audio.removeEventListener("error", onError)
+            reject(new Error(`Erro ao carregar ${type} da fonte ${i + 1}: ${e.type || e.message}`))
+          }
+
+          audio.addEventListener("canplaythrough", onCanPlay)
+          audio.addEventListener("error", onError)
 
           // Tentar carregar
           audio.src = urls[i]
@@ -255,13 +258,15 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   // 🎵 INICIALIZA OS ÁUDIOS COM MÚLTIPLAS TENTATIVAS
   useEffect(() => {
     const setupAudioSystem = async () => {
-      addDebugLog("🚀 Carregando áudios ORIGINAIS...")
+      addDebugLog("🚀 Carregando áudios para domínio personalizado...")
 
       try {
+        const audioUrls = getAudioUrls()
+
         const [typingAudio, errorAudio, wistfulAudio] = await Promise.allSettled([
-          tryLoadAudio(ORIGINAL_AUDIO_URLS.typing, "typing"),
-          tryLoadAudio(ORIGINAL_AUDIO_URLS.error, "error"),
-          tryLoadAudio(ORIGINAL_AUDIO_URLS.wistful, "wistful"),
+          tryLoadAudio(audioUrls.typing, "typing"),
+          tryLoadAudio(audioUrls.error, "error"),
+          tryLoadAudio(audioUrls.wistful, "wistful"),
         ])
 
         let loadedCount = 0
@@ -287,13 +292,17 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           addDebugLog("✅ Áudio wistful CARREGADO!")
 
           wistfulAudio.value.addEventListener("ended", () => {
-            addDebugLog("🎵 Áudio wistful ORIGINAL terminou")
+            addDebugLog("🎵 Áudio wistful terminou")
             setIsWistfulSound(false)
           })
         }
 
         setAudioReady(true)
-        addDebugLog(`🎵 Sistema ORIGINAL ativado! (${loadedCount}/3 áudios carregados)`)
+        addDebugLog(`🎵 Sistema ativado! (${loadedCount}/3 áudios carregados)`)
+
+        if (loadedCount === 0) {
+          addDebugLog("⚠️ NENHUM áudio foi carregado - verifique os arquivos!")
+        }
       } catch (error) {
         addDebugLog(`⚠️ Erro no sistema de áudio: ${error}`)
       }
@@ -326,13 +335,13 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
         // Tentar tocar um som de teste
         setTimeout(() => {
-          if (audioMode === "original" && typingAudioRef.current) {
+          if (typingAudioRef.current) {
             try {
               const testPromise = typingAudioRef.current.play()
               if (testPromise) {
                 testPromise
                   .then(() => {
-                    addDebugLog("🎵 Teste de áudio original OK!")
+                    addDebugLog("🎵 Teste de áudio OK!")
                     typingAudioRef.current?.pause()
                     typingAudioRef.current!.currentTime = 0
                   })
@@ -377,7 +386,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         })
       }
     }
-  }, [userInteracted, audioMode])
+  }, [userInteracted])
 
   // 🎵 FUNÇÃO PARA PARAR TODOS OS SONS ATIVOS
   const stopAllSounds = () => {
@@ -396,7 +405,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
   // SUBSTITUIR startTypingSound por:
   const startTypingSound = () => {
-    addDebugLog("🔊 Iniciando som de digitação ORIGINAL...")
+    addDebugLog("🔊 Iniciando som de digitação...")
 
     if (!soundEnabled || !userInteracted || !typingAudioRef.current || !audioLoadStatus.typing) {
       addDebugLog("🔇 Som não disponível")
@@ -413,10 +422,10 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         playPromise
           .then(() => {
             setIsTypingSound(true)
-            addDebugLog("🔊 Som de digitação ORIGINAL INICIADO!")
+            addDebugLog("🔊 Som de digitação INICIADO!")
           })
           .catch((error) => {
-            addDebugLog(`⚠️ Erro no áudio original: ${error}`)
+            addDebugLog(`⚠️ Erro no áudio: ${error}`)
           })
       }
     } catch (error) {
@@ -426,7 +435,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
   // FUNÇÃO PARA PARAR SOM DE DIGITAÇÃO
   const stopTypingSound = () => {
-    if (audioMode === "original" && typingAudioRef.current) {
+    if (typingAudioRef.current) {
       try {
         const audio = typingAudioRef.current
         if (!audio.paused) {
@@ -434,7 +443,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           audio.currentTime = 0
         }
       } catch (error) {
-        addDebugLog(`⚠️ Erro ao parar som original: ${error}`)
+        addDebugLog(`⚠️ Erro ao parar som: ${error}`)
       }
     }
     setIsTypingSound(false)
@@ -442,7 +451,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   }
 
   const startErrorSound = () => {
-    addDebugLog(`🔊 Iniciando som de ERRO ORIGINAL...`)
+    addDebugLog(`🔊 Iniciando som de ERRO...`)
 
     if (!soundEnabled || !userInteracted || !errorAudioRef.current || !audioLoadStatus.error) {
       addDebugLog("🔇 Som não disponível")
@@ -459,10 +468,10 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         playPromise
           .then(() => {
             setIsErrorSound(true)
-            addDebugLog("🔊 Som de ERRO ORIGINAL INICIADO!")
+            addDebugLog("🔊 Som de ERRO INICIADO!")
           })
           .catch((error) => {
-            addDebugLog(`⚠️ Erro no áudio original: ${error}`)
+            addDebugLog(`⚠️ Erro no áudio: ${error}`)
           })
       }
     } catch (error) {
@@ -471,7 +480,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   }
 
   const stopErrorSound = () => {
-    if (audioMode === "original" && errorAudioRef.current) {
+    if (errorAudioRef.current) {
       try {
         const audio = errorAudioRef.current
         if (!audio.paused) {
@@ -487,7 +496,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   }
 
   const startWistfulSound = () => {
-    addDebugLog(`🔊 Iniciando som WISTFUL ORIGINAL...`)
+    addDebugLog(`🔊 Iniciando som WISTFUL...`)
 
     if (!soundEnabled || !userInteracted || !wistfulAudioRef.current || !audioLoadStatus.wistful) {
       addDebugLog("🔇 Som não disponível")
@@ -504,10 +513,10 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         playPromise
           .then(() => {
             setIsWistfulSound(true)
-            addDebugLog("🔊 Som WISTFUL ORIGINAL INICIADO!")
+            addDebugLog("🔊 Som WISTFUL INICIADO!")
           })
           .catch((error) => {
-            addDebugLog(`⚠️ Erro no áudio original: ${error}`)
+            addDebugLog(`⚠️ Erro no áudio: ${error}`)
           })
       }
     } catch (error) {
@@ -516,7 +525,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   }
 
   const stopWistfulSound = () => {
-    if (audioMode === "original" && wistfulAudioRef.current) {
+    if (wistfulAudioRef.current) {
       try {
         const audio = wistfulAudioRef.current
         audio.pause()
