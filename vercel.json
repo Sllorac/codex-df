@@ -12,33 +12,10 @@
           "value": "GET, HEAD, OPTIONS"
         },
         {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Range"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/(.*\\.(mp3|wav|ogg|m4a))",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
           "key": "Content-Type",
           "value": "audio/mpeg"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/sounds/(.*)",
-      "destination": "/sounds/$1"
     }
   ]
 }
