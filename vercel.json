@@ -1,7 +1,7 @@
 {
   "functions": {
-    "app/layout.tsx": {
-      "includeFiles": "public/**"
+    "app/api/**/*.js": {
+      "runtime": "nodejs18.x"
     }
   },
   "headers": [
@@ -9,33 +9,16 @@
       "source": "/sounds/(.*)",
       "headers": [
         {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
         },
         {
           "key": "Access-Control-Allow-Methods",
           "value": "GET, HEAD, OPTIONS"
-        },
-        {
-          "key": "Content-Type",
-          "value": "audio/mpeg"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000"
-        }
-      ]
-    },
-    {
-      "source": "/(.*\\.(mp3|wav|ogg))",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Content-Type",
-          "value": "audio/mpeg"
         }
       ]
     }
