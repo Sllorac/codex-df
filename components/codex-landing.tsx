@@ -128,22 +128,16 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   const ORIGINAL_AUDIO_URLS = {
     typing: [
       "/sounds/typewriter-typing-68696.mp3",
-      "/sounds/typewriter-typing.mp3", // fallback local
       "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
       "https://github.com/Sllorac/codex-df/raw/main/public/sounds/typewriter-typing-68696.mp3",
     ],
     error: [
       "/sounds/error_sound-221445.mp3",
-      "/sounds/error_sound.mp3", // fallback local
-      "/sounds/error.mp3", // fallback simples
       "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
       "https://github.com/Sllorac/codex-df/raw/main/public/sounds/error_sound-221445.mp3",
-      "https://cdn.jsdelivr.net/gh/Sllorac/codex-df@main/public/sounds/error_sound-221445.mp3", // CDN alternativo
-      "https://raw.githubusercontent.com/Sllorac/codex-df/refs/heads/main/public/sounds/error_sound-221445.mp3", // URL com refs
     ],
     wistful: [
       "/sounds/wistful-1-39105.mp3",
-      "/sounds/wistful.mp3", // fallback local
       "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
       "https://github.com/Sllorac/codex-df/raw/main/public/sounds/wistful-1-39105.mp3",
     ],
@@ -153,19 +147,13 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   const tryLoadAudio = async (urls: string[], type: string): Promise<HTMLAudioElement | null> => {
     for (let i = 0; i < urls.length; i++) {
       try {
-        addDebugLog(`🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}: ${urls[i]}`)
+        addDebugLog(`🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}`)
 
         const audio = new Audio()
 
-        // Configurações ESPECIAIS para o som de erro
-        if (type === "error") {
-          audio.crossOrigin = null // Remover CORS para erro
-          audio.preload = "auto" // Forçar preload completo
-        } else {
-          audio.crossOrigin = "anonymous"
-          audio.preload = "metadata"
-        }
-
+        // Configurações mais permissivas
+        audio.crossOrigin = "anonymous"
+        audio.preload = "auto"
         audio.volume = type === "typing" ? 0.3 : 0.4
 
         if (type === "typing" || type === "error") {
@@ -174,30 +162,19 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
         // Promise para aguardar carregamento
         const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
-          const timeout = setTimeout(
+          const timeout = setTimeout(() => {
+            reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
+          }, 5000) // 5 segundos de timeout
+
+          audio.addEventListener(
+            "canplaythrough",
             () => {
-              reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
+              clearTimeout(timeout)
+              addDebugLog(`✅ ${type} carregado da fonte ${i + 1}!`)
+              resolve(audio)
             },
-            type === "error" ? 12000 : 8000,
-          ) // Timeout maior para erro
-
-          // Para erro, aceitar qualquer evento de sucesso
-          const handleSuccess = () => {
-            clearTimeout(timeout)
-            addDebugLog(`✅ ${type} carregado da fonte ${i + 1}!`)
-            resolve(audio)
-          }
-
-          if (type === "error") {
-            // Múltiplos eventos para erro
-            audio.addEventListener("canplaythrough", handleSuccess, { once: true })
-            audio.addEventListener("canplay", handleSuccess, { once: true })
-            audio.addEventListener("loadeddata", handleSuccess, { once: true })
-            audio.addEventListener("loadedmetadata", handleSuccess, { once: true })
-          } else {
-            audio.addEventListener("canplaythrough", handleSuccess, { once: true })
-            audio.addEventListener("canplay", handleSuccess, { once: true })
-          }
+            { once: true },
+          )
 
           audio.addEventListener(
             "error",
