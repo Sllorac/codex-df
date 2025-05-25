@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODEX - Agente de Criativos com I.A.</title>
+    <meta name="description" content="A inteligência artificial criou a sala. Você foi o escolhido pra entrar.">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* RESET E BASE */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        *::-webkit-scrollbar {
+            display: none;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+            font-family: 'Space Mono', 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+        }
+        
+        /* CONTAINER PRINCIPAL */
+        .screen-border {
+            border: 2px solid rgba(0, 191, 255, 0.8);
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        /* EFEITO DE CHUVA CYBERPUNK */
+        .rain-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+        
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 0;
+            background: linear-gradient(
+                to bottom,
+                transparent,
+                rgba(0, 255, 255, 1),
+                rgba(0, 255, 255, 0.8),
+                rgba(0, 255, 255, 0.6),
+                transparent
+            );
+            border-radius: 50%;
+            animation: falling linear infinite;
+            opacity: 0.9;
+        }
+        
+        @keyframes falling {
+            0% { top: -100px; height: 0; opacity: 0; }
+            10% { height: 60px; opacity: 1; }
+            90% { height: 60px; opacity: 1; }
+            100% { top: 100vh; height: 0; opacity: 0; }
+        }
+        
+        /* Diferentes velocidades para cada gota */
+        .raindrop:nth-child(1) { left: 5%; animation-duration: 1.5s; animation-delay: 0s; }
+        .raindrop:nth-child(2) { left: 15%; animation-duration: 1.8s; animation-delay: 0.2s; }
+        .raindrop:nth-child(3) { left: 25%; animation-duration: 1.3s; animation-delay: 0.4s; }
+        .raindrop:nth-child(4) { left: 35%; animation-duration: 2.0s; animation-delay: 0.6s; }
+        .raindrop:nth-child(5) { left: 45%; animation-duration: 1.6s; animation-delay: 0.8s; }
+        .raindrop:nth-child(6) { left: 55%; animation-duration: 1.9s; animation-delay: 1.0s; }
+        .raindrop:nth-child(7) { left: 65%; animation-duration: 1.4s; animation-delay: 1.2s; }
+        .raindrop:nth-child(8) { left: 75%; animation-duration: 1.7s; animation-delay: 1.4s; }
+        .raindrop:nth-child(9) { left: 85%; animation-duration: 2.1s; animation-delay: 1.6s; }
+        .raindrop:nth-child(10) { left: 95%; animation-duration: 1.5s; animation-delay: 1.8s; }
+        
+        /* PÁGINA INICIAL */
+        .initial-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #00ffff 0%, #0080ff 70%);
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 32px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+        
+        .logo.glitch {
+            animation: logoGlitch 0.3s ease-in-out;
+        }
+        
+        @keyframes logoGlitch {
+            0% { transform: translate(0); filter: hue-rotate(0deg); }
+            25% { transform: translate(-3px, 2px); filter: hue-rotate(90deg); }
+            50% { transform: translate(3px, -2px); filter: hue-rotate(180deg); }
+            75% { transform: translate(-2px, 3px); filter: hue-rotate(270deg); }
+            100% { transform: translate(0); filter: hue-rotate(360deg); }
+        }
+        
+        .intro-text {
+            font-size: 20px;
+            line-height: 1.6;
+            max-width: 500px;
+            margin-bottom: 32px;
+            text-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+        
+        .intro-text.glitch {
+            animation: textGlitch 0.2s ease-in-out;
+        }
+        
+        @keyframes textGlitch {
+            0% { text-shadow: 0 0 15px rgba(0, 255, 255, 0.4); }
+            25% { text-shadow: 2px 0 #ff0000, -2px 0 #00ff00; }
+            50% { text-shadow: -2px 0 #ff0000, 2px 0 #00ff00; }
+            75% { text-shadow: 2px 0 #ff0000, -2px 0 #00ff00; }
+            100% { text-shadow: 0 0 15px rgba(0, 255, 255, 0.4); }
+        }
+        
+        .continue-btn {
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            color: #00ffff;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        
+        .continue-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        
+        /* PÁGINA DO FUNIL */
+        .funnel-page {
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 191, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header-logo {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #00ffff 0%, #0080ff 70%);
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        
+        .sound-toggle {
+            background: rgba(0, 191, 255, 0.2);
+            border: 1px solid rgba(0, 191, 255, 0.5);
+            color: #00bfff;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .sound-toggle:hover {
+            background: rgba(0, 191, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+        }
+        
+        .content {
+            padding: 20px;
+            padding-bottom: 80px;
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .typing-text {
+            font-size: 18px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+        }
+        
+        .cursor {
+            color: #ff4444;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* PREÇOS DESTACADOS */
+        .price-mystery {
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(255, 255, 0, 1), 0 0 30px rgba(255, 255, 0, 0.8);
+            font-size: 1.2em;
+        }
+        
+        .price-old {
+            color: #ff4444;
+            text-decoration: line-through;
+            font-weight: bold;
+        }
+        
+        .price-new {
+            color: #44ff44;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(68, 255, 68, 0.8);
+        }
+        
+        /* SISTEMA DE ERRO - ULTRA DESTACADO */
+        .error-system {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(45deg, #330000, #660000, #990000, #660000, #330000);
+            background-size: 400% 400%;
+            border: 3px solid #ff0000;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            animation: errorPulse 2s infinite, errorBgShift 3s infinite;
+            box-shadow: 
+                0 0 30px rgba(255, 0, 0, 0.6),
+                inset 0 0 30px rgba(255, 0, 0, 0.2),
+                0 0 60px rgba(255, 0, 0, 0.4);
+        }
+        
+        .error-system:hover {
+            animation-duration: 1s;
+            box-shadow: 
+                0 0 50px rgba(255, 0, 0, 0.8),
+                inset 0 0 50px rgba(255, 0, 0, 0.3),
+                0 0 80px rgba(255, 0, 0, 0.6);
+        }
+        
+        @keyframes errorPulse {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 30px rgba(255, 0, 0, 0.6),
+                    inset 0 0 30px rgba(255, 0, 0, 0.2),
+                    0 0 60px rgba(255, 0, 0, 0.4);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 50px rgba(255, 0, 0, 0.9),
+                    inset 0 0 50px rgba(255, 0, 0, 0.4),
+                    0 0 100px rgba(255, 0, 0, 0.7);
+            }
+        }
+        
+        @keyframes errorBgShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .error-system::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.4), transparent);
+            animation: scanUrgent 2s infinite;
+        }
+        
+        @keyframes scanUrgent {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .error-title {
+            color: #ff4444;
+            font-weight: bold;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 2;
+            text-shadow: 
+                0 0 15px rgba(255, 0, 0, 1),
+                0 0 30px rgba(255, 0, 0, 0.8),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            animation: textUrgentGlow 1.5s infinite alternate;
+        }
+        
+        @keyframes textUrgentGlow {
+            0% {
+                text-shadow: 
+                    0 0 15px rgba(255, 0, 0, 1),
+                    0 0 30px rgba(255, 0, 0, 0.8),
+                    2px 2px 4px rgba(0, 0, 0, 0.8);
+                transform: scale(1);
+            }
+            100% {
+                text-shadow: 
+                    0 0 25px rgba(255, 0, 0, 1),
+                    0 0 50px rgba(255, 0, 0, 1),
+                    0 0 75px rgba(255, 0, 0, 0.8),
+                    2px 2px 4px rgba(0, 0, 0, 0.8);
+                transform: scale(1.02);
+            }
+        }
+        
+        .error-subtitle {
+            color: #ff6666;
+            font-size: 13px;
+            position: relative;
+            z-index: 2;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+            animation: subtitleBlink 3s infinite;
+        }
+        
+        @keyframes subtitleBlink {
+            0%, 85% { opacity: 0.9; }
+            90%, 95% { opacity: 0.4; }
+            100% { opacity: 0.9; }
+        }
+        
+        /* SISTEMA DE SUCESSO */
+        .success-system {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(45deg, #003300, #006600, #003300);
+            border: 3px solid #00ff00;
+            border-radius: 10px;
+            text-align: center;
+            animation: successPulse 0.5s ease-in-out;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .success-title {
+            color: #44ff44;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 8px;
+            text-shadow: 0 0 12px rgba(68, 255, 68, 0.8);
+        }
+        
+        .success-subtitle {
+            color: #66ff66;
+            font-size: 13px;
+        }
+        
+        /* TESTIMONIALS */
+        .testimonials {
+            margin: 40px auto;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(0, 255, 255, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .testimonials-title {
+            color: #00ffff;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .testimonial {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.5s ease;
+        }
+        
+        .testimonial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .testimonial-id {
+            color: #00ffff;
+            font-weight: bold;
+        }
+        
+        .testimonial-time {
+            color: #888;
+        }
+        
+        .testimonial-text {
+            color: #fff;
+            font-size: 15px;
+            font-style: italic;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .testimonial-verified {
+            color: #44ff44;
+            font-size: 11px;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .dot.active {
+            background: #00ffff;
+            transform: scale(1.4);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+        
+        .testimonial-list {
+            margin-top: 20px;
+        }
+        
+        .list-title {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        
+        .list-item {
+            color: #ccc;
+            font-size: 12px;
+            margin-bottom: 6px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        
+        .list-item.active {
+            background: rgba(0, 255, 255, 0.2);
+            color: #fff;
+            font-weight: bold;
+            border-color: rgba(0, 255, 255, 0.4);
+            transform: translateX(6px);
+        }
+        
+        .list-item:hover:not(.active) {
+            background: rgba(0, 255, 255, 0.1);
+            transform: translateX(3px);
+        }
+        
+        /* CTAs */
+        .cta {
+            margin: 25px 0;
+            padding: 15px 20px;
+            background: rgba(0, 191, 255, 0.15);
+            border: 2px solid rgba(0, 191, 255, 0.6);
+            border-radius: 6px;
+            color: #00bfff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            font-size: 16px;
+        }
+        
+        .cta:hover {
+            background: rgba(0, 191, 255, 0.25);
+            box-shadow: 0 0 25px rgba(0, 191, 255, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        .cta.glitch {
+            animation: ctaGlitch 0.2s ease-in-out;
+        }
+        
+        @keyframes ctaGlitch {
+            0% { transform: translate(0); }
+            25% { transform: translate(-2px, 2px); }
+            50% { transform: translate(2px, -2px); }
+            75% { transform: translate(-2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        
+        /* BACKGROUND GLITCH */
+        .bg-glitch {
+            animation: bgGlitch 0.4s ease-in-out;
+        }
+        
+        @keyframes bgGlitch {
+            0% { filter: brightness(1) hue-rotate(0deg) contrast(1); }
+            25% { filter: brightness(0.7) hue-rotate(90deg) contrast(1.5); }
+            50% { filter: brightness(1.3) hue-rotate(180deg) contrast(0.8); }
+            75% { filter: brightness(0.9) hue-rotate(270deg) contrast(1.2); }
+            100% { filter: brightness(1) hue-rotate(360deg) contrast(1); }
+        }
+        
+        /* ESTADOS */
+        .hidden {
+            display: none !important;
+        }
+        
+        .visible {
+            display: block !important;
+        }
+        
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .screen-border { border-width: 1px; }
+            .logo { width: 80px; height: 80px; font-size: 14px; }
+            .intro-text { font-size: 18px; padding: 0 15px; }
+            .typing-text { font-size: 16px; }
+            .content { padding: 15px; }
+            .header-logo { width: 50px; height: 50px; font-size: 10px; }
+            .testimonials { margin: 30px 15px; padding: 15px; }
+        }
+        
+        @media (max-width: 480px) {
+            .logo { width: 70px; height: 70px; font-size: 12px; }
+            .intro-text { font-size: 16px; }
+            .typing-text { font-size: 14px; }
+            .continue-btn { padding: 12px 24px; font-size: 16px; }
+            .header { padding: 15px; }
+            .content { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- PÁGINA INICIAL -->
+    <div id="initialPage" class="screen-border initial-page">
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+            <button id="soundToggle1" class="sound-toggle">Som: ON (synthetic)</button>
+        </div>
+        
+        <div id="logo1" class="logo">CODEX</div>
+        
+        <div id="introText" class="intro-text">
+            A inteligência artificial criou a sala. Você foi o escolhido pra entrar.
+        </div>
+        
+        <button id="continueBtn" class="continue-btn hidden">
+            > continuar _
+        </button>
+    </div>
+
+    <!-- PÁGINA DO FUNIL -->
+    <div id="funnelPage" class="screen-border funnel-page hidden">
+        <div class="overlay"></div>
+        
+        <!-- EFEITO DE CHUVA -->
+        <div class="rain-container">
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+        </div>
+        
+        <div class="header">
+            <div id="logo2" class="header-logo">CODEX</div>
+            <button id="soundToggle2" class="sound-toggle">Som: ON (synthetic)</button>
+        </div>
+        
+        <div class="content">
+            <div id="typingText" class="typing-text"></div>
+            <span id="cursor" class="cursor hidden">_</span>
+            
+            <!-- SISTEMA DE ERRO -->
+            <div id="errorSystem" class="error-system hidden">
+                <div class="error-title">🔒 ERRO NO SISTEMA - REINTEGRAÇÃO NECESSÁRIA 🔒</div>
+                <div class="error-subtitle">Clique para resolver o problema e continuar</div>
+            </div>
+            
+            <!-- SISTEMA DE SUCESSO -->
+            <div id="successSystem" class="success-system hidden">
+                <div class="success-title">✅ SISTEMA REINTEGRADO COM SUCESSO ✅</div>
+                <div class="success-subtitle">Sistema operando normalmente</div>
+            </div>
+            
+            <!-- TESTIMONIALS -->
+            <div id="testimonials" class="testimonials hidden">
+                <div class="testimonials-title">📊 FEEDBACKS ✅</div>
+                
+                <div id="currentTestimonial" class="testimonial">
+                    <div class="testimonial-header">
+                        <span id="testId" class="testimonial-id">💬 Resultado #1</span>
+                        <span id="testTime" class="testimonial-time">há 1h</span>
+                    </div>
+                    <div id="testText" class="testimonial-text">"8 VENDAS EM 24H - nem mexi em nada! 🚀"</div>
+                    <div class="testimonial-verified">✅ Verificado</div>
+                </div>
+                
+                <div class="dots">
+                    <div class="dot active" onclick="changeTestimonial(0)"></div>
+                    <div class="dot" onclick="changeTestimonial(1)"></div>
+                    <div class="dot" onclick="changeTestimonial(2)"></div>
+                    <div class="dot" onclick="changeTestimonial(3)"></div>
+                </div>
+                
+                <div class="testimonial-list">
+                    <div class="list-title">Últimos resultados (clique para ver):</div>
+                    <div id="item0" class="list-item active" onclick="changeTestimonial(0)">• 8 VENDAS EM 24H - nem mexi em nada! 🚀</div>
+                    <div id="item1" class="list-item" onclick="changeTestimonial(1)">• 5 VARIAÇÕES EM 10 MIN - conversão subiu 300% 📈</div>
+                    <div id="item2" class="list-item" onclick="changeTestimonial(2)">• 12 VENDAS NO PRIMEIRO DIA - mudou tudo! 💰</div>
+                    <div id="item3" class="list-item" onclick="changeTestimonial(3)">• CPA CAIU DE R$45 PARA R$6 - inacreditável! ⚡</div>
+                </div>
+                
+                <div style="color: #666; font-size: 10px; text-align: center; margin-top: 15px; font-style: italic;">
+                    💡 Clique nos resultados acima ou nos pontos para navegar
+                </div>
+            </div>
+            
+            <!-- CTAs -->
+            <div id="ctaFinal" class="cta hidden">
+                Clique aqui agora e transforme sua criação de anúncios para sempre.
+            </div>
+            
+            <div id="ctaButton" class="cta hidden">
+                > acesse_agora_o_sistema.exe
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO GLOBAL
+        let soundEnabled = true;
+        let userInteracted = false;
+        let currentTestimonialIndex = 0;
+        let typingIndex = 0;
+        let isTyping = false;
+        let systemError = false;
+        let errorFixed = false;
+        let textBeforeError = "";
+        let textAfterError = "";
+        let isPaused = false;
+        let typingComplete = false;
+        let audioContext = null;
+        
+        // INTERVALOS
+        let glitchInterval1, glitchInterval2, logoGlitchInterval, bgGlitchInterval, ctaGlitchInterval;
+        
+        // DADOS
+        const TESTIMONIALS = [
+            { id: 1, text: "8 VENDAS EM 24H - nem mexi em nada! 🚀" },
+            { id: 2, text: "5 VARIAÇÕES EM 10 MIN - conversão subiu 300% 📈" },
+            { id: 3, text: "12 VENDAS NO PRIMEIRO DIA - mudou tudo! 💰" },
+            { id: 4, text: "CPA CAIU DE R$45 PARA R$6 - inacreditável! ⚡" }
+        ];
+        
+        const FULL_TEXT = `Quantas vezes você já perdeu horas tentando criar um criativo que realmente vende?
+
+Abre o Canva, tenta modelar algo, mas nada fica bom. E mesmo quando termina, bate a dúvida: "Será que isso vai converter?"
+
+Agora, por apenas ??,?? reais, você pode acabar com esse ciclo.
+
+Um agente de inteligência artificial cria pra você criativos completos, no estilo que quiser: cinemático, publicitário, Pixar, cartoon, o que estiver no hype.
+
+Você só diz o que quer, pode subir sua imagem, e em 3 minutos recebe dois criativos:
+um com texto, outro com o fundo separado pra testar variações.
+
+Viu só? É isso que eu faço: apenas um comando simples e ela faz criativos. O resultado? Anúncios que não só chamam atenção, mas convertem de verdade.
+
+"Mas isso vende mesmo?"
+
+Subi uma campanha com esses criativos. Resultado?
+116 vendas de um e-book com CPA de R$6,59.
+
+TESTIMONIALS_PLACEHOLDER
+
+Você pode continuar travado, perdendo tempo, ou ativar agora o Agente de Criativos com I.A.
+
+E o melhor: esse plano é só uma degustação — sua porta de entrada pro mundo real dos criativos que convertem e da I.A. que transforma.
+
+Você recebe:
+• O Agente Gerador de Criativos
+• Uma vídeo-aula ensinando como usar
+• Acesso vitalício
+• E tudo isso… por apenas R$17
+
+De R$197 por R$17.
+
+Sem mensalidade. Sem enrolação. Sem desculpa.`;
+        
+        // ELEMENTOS DOM
+        const initialPage = document.getElementById('initialPage');
+        const funnelPage = document.getElementById('funnelPage');
+        const continueBtn = document.getElementById('continueBtn');
+        const typingText = document.getElementById('typingText');
+        const cursor = document.getElementById('cursor');
+        const errorSystem = document.getElementById('errorSystem');
+        const successSystem = document.getElementById('successSystem');
+        const testimonials = document.getElementById('testimonials');
+        const ctaFinal = document.getElementById('ctaFinal');
+        const ctaButton = document.getElementById('ctaButton');
+        const logo1 = document.getElementById('logo1');
+        const logo2 = document.getElementById('logo2');
+        const introText = document.getElementById('introText');
+        
+        // INICIALIZAÇÃO DO ÁUDIO SINTÉTICO
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('🎵 AudioContext inicializado');
+            } catch (e) {
+                console.log('⚠️ AudioContext não suportado');
+            }
+        }
+        
+        // SONS SINTÉTICOS
+        function playSound(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!soundEnabled || !userInteracted || !audioContext) return;
+            
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                oscillator.type = type;
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + duration);
+                
+                console.log(`🎵 Som: ${frequency}Hz por ${duration}s`);
+            } catch (e) {
+                console.log('⚠️ Erro ao tocar som');
+            }
+        }
+        
+        function playTypingSound() {
+            playSound(800, 0.1, 'square', 0.05);
+        }
+        
+        function playErrorSound() {
+            playSound(200, 2, 'square', 0.1);
+        }
+        
+        function playSuccessSound() {
+            playSound(523, 1.5, 'sine', 0.08);
+        }
+        
+        // FORMATAÇÃO DE TEXTO
+        function formatText(text) {
+            return text
+                .replace(/(\?\?,\?\?)/g, '<span class="price-mystery">$1</span>')
+                .replace(/(De )(R\$197)( por )(R\$17)(\.)/g, '$1<span class="price-old">$2</span>$3<span class="price-new">$4</span>$5')
+                .replace(/(por apenas )(R\$17)( reais)/g, '$1<span class="price-new">$2</span>$3')
+                .replace(/\n/g, '<br>');
+        }
+        
+        // DETECÇÃO DE FRASES
+        function isStartOfSentence(text, index) {
+            if (index === 0) return true;
+            const prevChar = text[index - 1];
+            const currentChar = text[index];
+            return (prevChar === '.' || prevChar === '!' || prevChar === '?') && 
+                   currentChar !== ' ' && currentChar !== '\n';
+        }
+        
+        function isEndOfSentence(text, index) {
+            const char = text[index - 1];
+            const nextChar = text[index];
+            return (char === '.' || char === '!' || char === '?') && 
+                   (nextChar === ' ' || nextChar === '\n' || index === text.length);
+        }
+        
+        // DIGITAÇÃO
+        function startTyping() {
+            console.log('🎯 Iniciando digitação');
+            cursor.classList.remove('hidden');
+            isTyping = true;
+            typingIndex = 0;
+            typeText();
+        }
+        
+        function typeText() {
+            if (!isTyping || isPaused) return;
+            
+            const errorTrigger = "um com texto, outro com o fundo separado pra testar variações.";
+            
+            // Verificar erro
+            if (typingIndex > 0 && 
+                FULL_TEXT.substring(0, typingIndex).includes(errorTrigger) && 
+                !systemError && !errorFixed) {
+                
+                console.log('🚨 Ativando sistema de erro');
+                const currentText = FULL_TEXT.substring(0, typingIndex);
+                const triggerIndex = currentText.indexOf(errorTrigger);
+                textBeforeError = currentText.substring(0, triggerIndex + errorTrigger.length);
+                textAfterError = FULL_TEXT.substring(triggerIndex + errorTrigger.length);
+                
+                setTimeout(() => {
+                    systemError = true;
+                    showError();
+                }, 1000);
+                return;
+            }
+            
+            // Continuar após erro
+            if (errorFixed && textAfterError) {
+                const currentAfterIndex = typingIndex - textBeforeError.length;
+                
+                if (currentAfterIndex < textAfterError.length) {
+                    if (isStartOfSentence(textAfterError, currentAfterIndex)) {
+                        playTypingSound();
+                    }
+                    
+                    if (isEndOfSentence(textAfterError, currentAfterIndex)) {
+                        isPaused = true;
+                        setTimeout(() => {
+                            isPaused = false;
+                            typingIndex++;
+                            typeText();
+                        }, 1000);
+                        return;
+                    }
+                    
+                    setTimeout(() => {
+                        typingIndex++;
+                        typeText();
+                    }, 30);
+                    return;
+                } else {
+                    finishTyping();
+                }
+                return;
+            }
+            
+            // Verificar testimonials
+            const currentText = FULL_TEXT.substring(0, typingIndex);
+            if (currentText.includes('TESTIMONIALS_PLACEHOLDER')) {
+                const beforeTestimonials = currentText.replace('TESTIMONIALS_PLACEHOLDER', '');
+                typingText.innerHTML = formatText(beforeTestimonials);
+                showTestimonials();
+                
+                setTimeout(() => {
+                    typingIndex = FULL_TEXT.indexOf('TESTIMONIALS_PLACEHOLDER') + 'TESTIMONIALS_PLACEHOLDER'.length;
+                    typeText();
+                }, 2000);
+                return;
+            }
+            
+            // Digitação normal
+            if (typingIndex < FULL_TEXT.length && !systemError) {
+                if (isStartOfSentence(FULL_TEXT, typingIndex)) {
+                    playTypingSound();
+                }
+                
+                typingText.innerHTML = formatText(FULL_TEXT.substring(0, typingIndex + 1));
+                
+                if (isEndOfSentence(FULL_TEXT, typingIndex + 1)) {
+                    isPaused = true;
+                    setTimeout(() => {
+                        isPaused = false;
+                        typingIndex++;
+                        typeText();
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        typingIndex++;
+                        typeText();
+                    }, 30);
+                }
+            } else if (typingIndex >= FULL_TEXT.length && !systemError) {
+                finishTyping();
+            }
+        }
+        
+        function finishTyping() {
+            console.log('✅ Digitação finalizada');
+            cursor.classList.add('hidden');
+            isTyping = false;
+            typingComplete = true;
+            showCTAs();
+        }
+        
+        // SISTEMA DE ERRO
+        function showError() {
+            typingText.innerHTML = formatText(textBeforeError);
+            errorSystem.classList.remove('hidden');
+            playErrorSound();
+        }
+        
+        function fixError() {
+            console.log('🔧 Corrigindo erro');
+            errorSystem.classList.add('hidden');
+            successSystem.classList.remove('hidden');
+            playSuccessSound();
+            errorFixed = true;
+            
+            setTimeout(() => {
+                successSystem.classList.add('hidden');
+                typingIndex = textBeforeError.length;
+                isTyping = true;
+                cursor.classList.remove('hidden');
+                typeText();
+            }, 1500);
+        }
+        
+        // TESTIMONIALS
+        function showTestimonials() {
+            console.log('📊 Mostrando testimonials');
+            testimonials.classList.remove('hidden');
+            updateTestimonial();
+        }
+        
+        function changeTestimonial(index) {
+            currentTestimonialIndex = index;
+            updateTestimonial();
+        }
+        
+        function updateTestimonial() {
+            const testimonial = TESTIMONIALS[currentTestimonialIndex];
+            document.getElementById('testId').textContent = `💬 Resultado #${testimonial.id}`;
+            document.getElementById('testTime').textContent = `há ${currentTestimonialIndex + 1}h`;
+            document.getElementById('testText').textContent = `"${testimonial.text}"`;
+            
+            // Atualizar dots
+            document.querySelectorAll('.dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentTestimonialIndex);
+            });
+            
+            // Atualizar lista
+            for (let i = 0; i < TESTIMONIALS.length; i++) {
+                const item = document.getElementById(`item${i}`);
+                if (item) {
+                    item.classList.toggle('active', i === currentTestimonialIndex);
+                }
+            }
+        }
+        
+        // CTAs
+        function showCTAs() {
+            console.log('🎯 Mostrando CTAs');
+            setTimeout(() => {
+                ctaFinal.classList.remove('hidden');
+                ctaButton.classList.remove('hidden');
+                
+                // Glitch nos CTAs
+                ctaGlitchInterval = setInterval(() => {
+                    ctaFinal.classList.add('glitch');
+                    ctaButton.classList.add('glitch');
+                    setTimeout(() => {
+                        ctaFinal.classList.remove('glitch');
+                        ctaButton.classList.remove('glitch');
+                    }, 200);
+                }, 3000);
+            }, 500);
+        }
+        
+        // TOGGLE DE SOM
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const status = soundEnabled ? 'ON' : 'OFF';
+            document.getElementById('soundToggle1').textContent = `Som: ${status} (synthetic)`;
+            document.getElementById('soundToggle2').textContent = `Som: ${status} (synthetic)`;
+            console.log(`🔊 Som ${status}`);
+        }
+        
+        // NAVEGAÇÃO
+        function goToFunnel() {
+            console.log('🚀 Indo para o funil');
+            
+            // Limpar intervalos da página inicial
+            [glitchInterval1, glitchInterval2].forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+            
+            initialPage.classList.add('hidden');
+            funnelPage.classList.remove('hidden');
+            
+            setTimeout(() => {
+                startTyping();
+                startGlitchEffects();
+            }, 100);
+        }
+        
+        // EFEITOS DE GLITCH
+        function startGlitchEffects() {
+            console.log('✨ Iniciando efeitos de glitch');
+            
+            // Glitch do logo
+            logoGlitchInterval = setInterval(() => {
+                logo2.classList.add('glitch');
+                setTimeout(() => logo2.classList.remove('glitch'), 300);
+            }, 2000);
+            
+            // Glitch do background
+            bgGlitchInterval = setInterval(() => {
+                funnelPage.classList.add('bg-glitch');
+                setTimeout(() => funnelPage.classList.remove('bg-glitch'), 300);
+            }, 5000);
+        }
+        
+        // EVENT LISTENERS
+        document.addEventListener('click', () => {
+            if (!userInteracted) {
+                userInteracted = true;
+                initAudio();
+                console.log('👆 Primeira interação detectada');
+            }
+        });
+        
+        continueBtn.addEventListener('click', goToFunnel);
+        errorSystem.addEventListener('click', fixError);
+        document.getElementById('soundToggle1').addEventListener('click', toggleSound);
+        document.getElementById('soundToggle2').addEventListener('click', toggleSound);
+        
+        // CTAs - SEUS LINKS REAIS!
+        ctaFinal.addEventListener('click', () => {
+            console.log('🎯 CTA Final clicado');
+            window.open('https://checkout.perfectpay.com.br/P/646077', '_blank');
+        });
+        
+        ctaButton.addEventListener('click', () => {
+            console.log('🎯 CTA Button clicado');
+            window.open('https://checkout.perfectpay.com.br/P/646077', '_blank');
+        });
+        
+        // INICIALIZAÇÃO
+        window.addEventListener('load', () => {
+            console.log('🎯 Aplicação carregada');
+            
+            // Mostrar botão continuar
+            setTimeout(() => {
+                continueBtn.classList.remove('hidden');
+                console.log('▶️ Botão continuar mostrado');
+            }, 1000);
+            
+            // Efeitos da página inicial
+            setTimeout(() => {
+                glitchInterval1 = setInterval(() => {
+                    introText.classList.add('glitch');
+                    setTimeout(() => introText.classList.remove('glitch'), 200);
+                }, 1500);
+                
+                glitchInterval2 = setInterval(() => {
+                    logo1.classList.add('glitch');
+                    setTimeout(() => logo1.classList.remove('glitch'), 300);
+                }, 3000);
+            }, 2000);
+        });
+        
+        // LIMPEZA
+        window.addEventListener('beforeunload', () => {
+            [glitchInterval1, glitchInterval2, logoGlitchInterval, bgGlitchInterval, ctaGlitchInterval].forEach(interval => {
+                if (interval) clearInterval(interval);
+            });
+        });
+        
+        console.log('🎯 CODEX carregado com sucesso!');
+    </script>
+</body>
+</html>
