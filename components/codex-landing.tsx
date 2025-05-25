@@ -53,8 +53,21 @@ export default function CodexLanding() {
   const [isErrorSound, setIsErrorSound] = useState(false)
   const [isWistfulSound, setIsWistfulSound] = useState(false)
 
-  // REFs para controlar os sons sintéticos
+  // REFs para os áudios originais do GitHub
+  const typingAudioRef = useRef<HTMLAudioElement | null>(null)
+  const errorAudioRef = useRef<HTMLAudioElement | null>(null)
+  const wistfulAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // REFs para controlar os sons sintéticos (fallback)
   const activeSoundsRef = useRef<Set<OscillatorNode>>(new Set())
+
+  // Estados para controlar qual tipo de áudio usar
+  const [audioMode, setAudioMode] = useState<"original" | "synthetic">("original")
+  const [audioLoadStatus, setAudioLoadStatus] = useState({
+    typing: false,
+    error: false,
+    wistful: false,
+  })
 
   const copy = `Quantas vezes você já perdeu horas tentando criar um criativo que realmente vende?
 
@@ -114,10 +127,17 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     },
   ]
 
+  // 🎵 URLs DOS ÁUDIOS ORIGINAIS DO GITHUB
+  const ORIGINAL_AUDIO_URLS = {
+    typing: "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
+    error: "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
+    wistful: "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
+  }
+
   // FUNÇÃO PARA ADICIONAR LOG DE DEBUG
   const addDebugLog = (message: string) => {
-    console.log(`🎵 AUDIO SINTÉTICO: ${message}`)
-    setAudioDebug((prev) => [...prev.slice(-4), `${new Date().toLocaleTimeString()}: ${message}`])
+    console.log(`🎵 AUDIO HÍBRIDO: ${message}`)
+    setAudioDebug((prev) => [...prev.slice(-5), `${new Date().toLocaleTimeString()}: ${message}`])
   }
 
   // FUNÇÃO PARA DETECTAR FIM DE FRASE
@@ -167,16 +187,119 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     return false
   }
 
-  // 🎵 SISTEMA DE ÁUDIO SINTÉTICO 100% GARANTIDO
+  // 🎵 INICIALIZA OS ÁUDIOS ORIGINAIS DO GITHUB COM FALLBACK
   useEffect(() => {
-    const initAudioContext = () => {
+    const setupOriginalAudio = async () => {
+      try {
+        addDebugLog("🚀 Tentando carregar áudios ORIGINAIS do GitHub...")
+
+        // CONFIGURAR ÁUDIO DE DIGITAÇÃO ORIGINAL
+        const typingAudio = new Audio()
+        typingAudio.src = ORIGINAL_AUDIO_URLS.typing
+        typingAudio.preload = "metadata"
+        typingAudio.loop = true
+        typingAudio.volume = 0.3
+        typingAudio.crossOrigin = "anonymous"
+
+        typingAudio.addEventListener(
+          "canplaythrough",
+          () => {
+            addDebugLog("✅ Áudio ORIGINAL de digitação carregado!")
+            setAudioLoadStatus((prev) => ({ ...prev, typing: true }))
+            setAudioReady(true)
+          },
+          { once: true },
+        )
+
+        typingAudio.addEventListener("error", (e) => {
+          addDebugLog(`❌ Erro no áudio original de digitação: ${e}`)
+          setAudioLoadStatus((prev) => ({ ...prev, typing: false }))
+        })
+
+        typingAudioRef.current = typingAudio
+
+        // CONFIGURAR ÁUDIO DE ERRO ORIGINAL
+        const errorAudio = new Audio()
+        errorAudio.src = ORIGINAL_AUDIO_URLS.error
+        errorAudio.preload = "metadata"
+        errorAudio.loop = true
+        errorAudio.volume = 0.4
+        errorAudio.crossOrigin = "anonymous"
+
+        errorAudio.addEventListener(
+          "canplaythrough",
+          () => {
+            addDebugLog("✅ Áudio ORIGINAL de erro carregado!")
+            setAudioLoadStatus((prev) => ({ ...prev, error: true }))
+          },
+          { once: true },
+        )
+
+        errorAudio.addEventListener("error", (e) => {
+          addDebugLog(`❌ Erro no áudio original de erro: ${e}`)
+          setAudioLoadStatus((prev) => ({ ...prev, error: false }))
+        })
+
+        errorAudioRef.current = errorAudio
+
+        // CONFIGURAR ÁUDIO WISTFUL ORIGINAL
+        const wistfulAudio = new Audio()
+        wistfulAudio.src = ORIGINAL_AUDIO_URLS.wistful
+        wistfulAudio.preload = "metadata"
+        wistfulAudio.loop = false
+        wistfulAudio.volume = 0.4
+        wistfulAudio.crossOrigin = "anonymous"
+
+        wistfulAudio.addEventListener(
+          "canplaythrough",
+          () => {
+            addDebugLog("✅ Áudio ORIGINAL wistful carregado!")
+            setAudioLoadStatus((prev) => ({ ...prev, wistful: true }))
+          },
+          { once: true },
+        )
+
+        wistfulAudio.addEventListener("error", (e) => {
+          addDebugLog(`❌ Erro no áudio original wistful: ${e}`)
+          setAudioLoadStatus((prev) => ({ ...prev, wistful: false }))
+        })
+
+        wistfulAudio.addEventListener("ended", () => {
+          addDebugLog("🎵 Áudio wistful ORIGINAL terminou")
+          setIsWistfulSound(false)
+        })
+
+        wistfulAudioRef.current = wistfulAudio
+
+        addDebugLog("🎵 Todos os áudios ORIGINAIS configurados!")
+
+        // Verificar se algum áudio falhou e ativar fallback
+        setTimeout(() => {
+          const allLoaded = Object.values(audioLoadStatus).every((status) => status)
+          if (!allLoaded) {
+            addDebugLog("⚠️ Alguns áudios originais falharam, ativando fallback sintético...")
+            setAudioMode("synthetic")
+            initSyntheticAudio()
+          } else {
+            addDebugLog("✅ Todos os áudios ORIGINAIS carregados com sucesso!")
+            setAudioMode("original")
+          }
+        }, 3000) // Aguarda 3 segundos para verificar
+      } catch (error) {
+        addDebugLog(`⚠️ Erro geral nos áudios originais: ${error}`)
+        setAudioMode("synthetic")
+        initSyntheticAudio()
+      }
+    }
+
+    const initSyntheticAudio = () => {
       try {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
         if (AudioContextClass) {
           const ctx = new AudioContextClass()
           setAudioContext(ctx)
           setAudioReady(true)
-          addDebugLog("✅ AudioContext SINTÉTICO criado!")
+          addDebugLog("✅ AudioContext SINTÉTICO ativado como fallback!")
         } else {
           addDebugLog("❌ AudioContext não suportado")
         }
@@ -185,7 +308,22 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       }
     }
 
-    initAudioContext()
+    setupOriginalAudio()
+
+    return () => {
+      // Limpar todos os áudios
+      ;[typingAudioRef, errorAudioRef, wistfulAudioRef].forEach((ref) => {
+        if (ref.current) {
+          try {
+            ref.current.pause()
+            ref.current.src = ""
+            ref.current = null
+          } catch (error) {
+            addDebugLog(`⚠️ Erro ao limpar áudio: ${error}`)
+          }
+        }
+      })
+    }
   }, [])
 
   // DETECTA PRIMEIRA INTERAÇÃO DO USUÁRIO
@@ -193,6 +331,16 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     const handleFirstInteraction = () => {
       setUserInteracted(true)
       addDebugLog("👆 Primeira interação detectada!")
+
+      // Tenta carregar os áudios após interação
+      if (audioMode === "original" && typingAudioRef.current) {
+        try {
+          typingAudioRef.current.load()
+          addDebugLog("🔄 Recarregando áudios ORIGINAIS após interação")
+        } catch (error) {
+          addDebugLog(`⚠️ Erro ao recarregar: ${error}`)
+        }
+      }
 
       // Resume AudioContext se necessário
       if (audioContext && audioContext.state === "suspended") {
@@ -214,10 +362,23 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         })
       }
     }
-  }, [userInteracted, audioContext])
+  }, [userInteracted, audioContext, audioMode])
 
   // 🎵 FUNÇÃO PARA PARAR TODOS OS SONS ATIVOS
   const stopAllSounds = () => {
+    // Parar áudios originais
+    ;[typingAudioRef, errorAudioRef, wistfulAudioRef].forEach((ref) => {
+      if (ref.current && !ref.current.paused) {
+        try {
+          ref.current.pause()
+          ref.current.currentTime = 0
+        } catch (e) {
+          // Já parado
+        }
+      }
+    })
+
+    // Parar sons sintéticos
     activeSoundsRef.current.forEach((oscillator) => {
       try {
         oscillator.stop()
@@ -228,35 +389,30 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     activeSoundsRef.current.clear()
   }
 
-  // 🎵 FUNÇÃO PARA CRIAR SOM SINTÉTICO DE DIGITAÇÃO - MELHORADO
+  // 🎵 FUNÇÃO PARA CRIAR SOM SINTÉTICO DE DIGITAÇÃO (FALLBACK)
   const createTypingSound = () => {
     if (!audioContext || !soundEnabled || !userInteracted) return null
 
     try {
-      // Para sons anteriores
       stopAllSounds()
 
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
       const filterNode = audioContext.createBiquadFilter()
 
-      // Conectar nós
       oscillator.connect(filterNode)
       filterNode.connect(gainNode)
       gainNode.connect(audioContext.destination)
 
-      // Configurar som de digitação mais realista
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
       oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.05)
       oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1)
 
       oscillator.type = "square"
 
-      // Filtro para suavizar
       filterNode.type = "lowpass"
       filterNode.frequency.setValueAtTime(2000, audioContext.currentTime)
 
-      // Envelope de volume
       gainNode.gain.setValueAtTime(0, audioContext.currentTime)
       gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.01)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
@@ -264,10 +420,8 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       oscillator.start()
       oscillator.stop(audioContext.currentTime + 0.1)
 
-      // Adicionar à lista de sons ativos
       activeSoundsRef.current.add(oscillator)
 
-      // Remover da lista quando terminar
       oscillator.onended = () => {
         activeSoundsRef.current.delete(oscillator)
       }
@@ -290,7 +444,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     }
   }
 
-  // 🎵 FUNÇÃO PARA CRIAR SOM SINTÉTICO DE ERRO - MELHORADO
+  // 🎵 FUNÇÃO PARA CRIAR SOM SINTÉTICO DE ERRO (FALLBACK)
   const createErrorSound = () => {
     if (!audioContext || !soundEnabled || !userInteracted) return null
 
@@ -303,23 +457,20 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       const gainNode2 = audioContext.createGain()
       const masterGain = audioContext.createGain()
 
-      // Conectar nós
       oscillator1.connect(gainNode1)
       oscillator2.connect(gainNode2)
       gainNode1.connect(masterGain)
       gainNode2.connect(masterGain)
       masterGain.connect(audioContext.destination)
 
-      // Som de erro: duas frequências dissonantes
       oscillator1.frequency.setValueAtTime(150, audioContext.currentTime)
       oscillator1.frequency.linearRampToValueAtTime(100, audioContext.currentTime + 2)
       oscillator1.type = "sawtooth"
 
-      oscillator2.frequency.setValueAtTime(157, audioContext.currentTime) // Ligeiramente desafinado
+      oscillator2.frequency.setValueAtTime(157, audioContext.currentTime)
       oscillator2.frequency.linearRampToValueAtTime(103, audioContext.currentTime + 2)
       oscillator2.type = "square"
 
-      // Volumes
       gainNode1.gain.setValueAtTime(0.1, audioContext.currentTime)
       gainNode2.gain.setValueAtTime(0.08, audioContext.currentTime)
       masterGain.gain.setValueAtTime(0.3, audioContext.currentTime)
@@ -358,7 +509,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     }
   }
 
-  // 🎵 FUNÇÃO PARA CRIAR SOM SINTÉTICO WISTFUL - MELHORADO
+  // 🎵 FUNÇÃO PARA CRIAR SOM SINTÉTICO WISTFUL (FALLBACK)
   const createWistfulSound = () => {
     if (!audioContext || !soundEnabled || !userInteracted) return null
 
@@ -373,8 +524,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       filterNode.connect(gainNode)
       gainNode.connect(audioContext.destination)
 
-      // Melodia wistful: sequência harmônica
-      const notes = [523.25, 659.25, 783.99, 523.25] // C5, E5, G5, C5
+      const notes = [523.25, 659.25, 783.99, 523.25]
       const currentTime = audioContext.currentTime
 
       oscillator.frequency.setValueAtTime(notes[0], currentTime)
@@ -387,11 +537,9 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
       oscillator.type = "sine"
 
-      // Filtro suave
       filterNode.type = "lowpass"
       filterNode.frequency.setValueAtTime(1500, audioContext.currentTime)
 
-      // Envelope suave
       gainNode.gain.setValueAtTime(0, audioContext.currentTime)
       gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.1)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2)
@@ -420,73 +568,203 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     }
   }
 
-  // FUNÇÃO PARA INICIAR SOM DE DIGITAÇÃO
+  // FUNÇÃO PARA INICIAR SOM DE DIGITAÇÃO (HÍBRIDO)
   const startTypingSound = () => {
-    if (!soundEnabled || !userInteracted || !audioContext) {
-      addDebugLog("🔇 Som de digitação não disponível")
+    addDebugLog(`🔊 Tentativa de iniciar som de digitação (${audioMode})...`)
+
+    if (!soundEnabled || !userInteracted) {
+      addDebugLog("🔇 Som desabilitado ou sem interação")
       return
     }
 
-    const sound = createTypingSound()
-    if (sound) {
-      setIsTypingSound(true)
-      addDebugLog("🔊 Som de digitação INICIADO!")
+    if (audioMode === "original" && typingAudioRef.current && audioLoadStatus.typing) {
+      // Usar áudio original
+      try {
+        const audio = typingAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
 
-      // Para automaticamente após 100ms
-      setTimeout(() => {
-        setIsTypingSound(false)
-      }, 100)
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsTypingSound(true)
+              addDebugLog("🔊 Som de digitação ORIGINAL INICIADO!")
+            })
+            .catch((error) => {
+              addDebugLog(`⚠️ Erro no áudio original, usando fallback: ${error}`)
+              // Fallback para sintético
+              const sound = createTypingSound()
+              if (sound) {
+                setIsTypingSound(true)
+                setTimeout(() => setIsTypingSound(false), 100)
+              }
+            })
+        }
+      } catch (error) {
+        addDebugLog(`⚠️ Erro na função original: ${error}`)
+        // Fallback para sintético
+        const sound = createTypingSound()
+        if (sound) {
+          setIsTypingSound(true)
+          setTimeout(() => setIsTypingSound(false), 100)
+        }
+      }
+    } else {
+      // Usar áudio sintético
+      const sound = createTypingSound()
+      if (sound) {
+        setIsTypingSound(true)
+        setTimeout(() => setIsTypingSound(false), 100)
+      }
     }
   }
 
   // FUNÇÃO PARA PARAR SOM DE DIGITAÇÃO
   const stopTypingSound = () => {
+    if (audioMode === "original" && typingAudioRef.current) {
+      try {
+        const audio = typingAudioRef.current
+        if (!audio.paused) {
+          audio.pause()
+          audio.currentTime = 0
+        }
+      } catch (error) {
+        addDebugLog(`⚠️ Erro ao parar som original: ${error}`)
+      }
+    }
     setIsTypingSound(false)
     addDebugLog("🔇 Som de digitação PARADO")
   }
 
   const startErrorSound = () => {
-    if (!soundEnabled || !userInteracted || !audioContext) {
+    addDebugLog(`🔊 Tentativa de iniciar som de ERRO (${audioMode})...`)
+
+    if (!soundEnabled || !userInteracted) {
       addDebugLog("🔇 Som de erro não disponível")
       return
     }
 
-    const sound = createErrorSound()
-    if (sound) {
-      setIsErrorSound(true)
-      addDebugLog("🔊 Som de ERRO INICIADO!")
+    if (audioMode === "original" && errorAudioRef.current && audioLoadStatus.error) {
+      // Usar áudio original
+      try {
+        const audio = errorAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
 
-      // Para automaticamente após 2 segundos
-      setTimeout(() => {
-        setIsErrorSound(false)
-      }, 2000)
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsErrorSound(true)
+              addDebugLog("🔊 Som de ERRO ORIGINAL INICIADO!")
+            })
+            .catch((error) => {
+              addDebugLog(`⚠️ Erro no áudio original de erro, usando fallback: ${error}`)
+              // Fallback para sintético
+              const sound = createErrorSound()
+              if (sound) {
+                setIsErrorSound(true)
+                setTimeout(() => setIsErrorSound(false), 2000)
+              }
+            })
+        }
+      } catch (error) {
+        addDebugLog(`⚠️ Erro na função startErrorSound: ${error}`)
+        // Fallback para sintético
+        const sound = createErrorSound()
+        if (sound) {
+          setIsErrorSound(true)
+          setTimeout(() => setIsErrorSound(false), 2000)
+        }
+      }
+    } else {
+      // Usar áudio sintético
+      const sound = createErrorSound()
+      if (sound) {
+        setIsErrorSound(true)
+        setTimeout(() => setIsErrorSound(false), 2000)
+      }
     }
   }
 
   const stopErrorSound = () => {
+    if (audioMode === "original" && errorAudioRef.current) {
+      try {
+        const audio = errorAudioRef.current
+        if (!audio.paused) {
+          audio.pause()
+          audio.currentTime = 0
+        }
+      } catch (error) {
+        addDebugLog(`⚠️ Erro ao parar som de erro: ${error}`)
+      }
+    }
     setIsErrorSound(false)
     addDebugLog("🔇 Som de erro PARADO")
   }
 
   const startWistfulSound = () => {
-    if (!soundEnabled || !userInteracted || !audioContext) {
+    addDebugLog(`🔊 Tentativa de iniciar som WISTFUL (${audioMode})...`)
+
+    if (!soundEnabled || !userInteracted) {
       addDebugLog("🔇 Som wistful não disponível")
       return
     }
 
-    const sound = createWistfulSound()
-    if (sound) {
-      setIsWistfulSound(true)
-      addDebugLog("🔊 Som WISTFUL INICIADO!")
+    if (audioMode === "original" && wistfulAudioRef.current && audioLoadStatus.wistful) {
+      // Usar áudio original
+      try {
+        const audio = wistfulAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
 
-      // Para automaticamente após 2 segundos
-      setTimeout(() => {
-        setIsWistfulSound(false)
-      }, 2000)
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsWistfulSound(true)
+              addDebugLog("🔊 Som WISTFUL ORIGINAL INICIADO!")
+            })
+            .catch((error) => {
+              addDebugLog(`⚠️ Erro no áudio original wistful, usando fallback: ${error}`)
+              // Fallback para sintético
+              const sound = createWistfulSound()
+              if (sound) {
+                setIsWistfulSound(true)
+                setTimeout(() => setIsWistfulSound(false), 2000)
+              }
+            })
+        }
+      } catch (error) {
+        addDebugLog(`⚠️ Erro na função startWistfulSound: ${error}`)
+        // Fallback para sintético
+        const sound = createWistfulSound()
+        if (sound) {
+          setIsWistfulSound(true)
+          setTimeout(() => setIsWistfulSound(false), 2000)
+        }
+      }
+    } else {
+      // Usar áudio sintético
+      const sound = createWistfulSound()
+      if (sound) {
+        setIsWistfulSound(true)
+        setTimeout(() => setIsWistfulSound(false), 2000)
+      }
     }
   }
 
   const stopWistfulSound = () => {
+    if (audioMode === "original" && wistfulAudioRef.current) {
+      try {
+        const audio = wistfulAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
+      } catch (error) {
+        addDebugLog(`⚠️ Erro ao parar som wistful: ${error}`)
+      }
+    }
     setIsWistfulSound(false)
     addDebugLog("🔇 Som wistful PARADO")
   }
@@ -1096,13 +1374,17 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           </div>
         </div>
 
-        {/* DEBUG PANEL - MOSTRA STATUS DOS ÁUDIOS SINTÉTICOS */}
+        {/* DEBUG PANEL - MOSTRA STATUS DOS ÁUDIOS HÍBRIDOS */}
         {audioDebug.length > 0 && (
           <div className="absolute top-4 left-4 z-10 bg-black bg-opacity-80 p-2 rounded text-xs text-green-400 max-w-xs">
-            <div className="font-bold mb-1">🎵 ÁUDIO SINTÉTICO:</div>
-            <div className="text-xs mb-1">AudioContext: {audioContext ? "✅" : "❌"}</div>
+            <div className="font-bold mb-1">🎵 ÁUDIO HÍBRIDO:</div>
+            <div className="text-xs mb-1">Modo: {audioMode === "original" ? "🎵 ORIGINAL" : "🔊 SINTÉTICO"}</div>
             <div className="text-xs mb-1">Interação: {userInteracted ? "✅" : "❌"}</div>
             <div className="text-xs mb-1">Som: {soundEnabled ? "ON" : "OFF"}</div>
+            <div className="text-xs mb-1">
+              Status: T:{audioLoadStatus.typing ? "✅" : "❌"} E:{audioLoadStatus.error ? "✅" : "❌"} W:
+              {audioLoadStatus.wistful ? "✅" : "❌"}
+            </div>
             {audioDebug.slice(-2).map((log, index) => (
               <div key={index} className="mb-1 text-xs">
                 {log}
