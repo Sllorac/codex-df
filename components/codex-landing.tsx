@@ -161,18 +161,13 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     }
   }
 
-  // URLs DOS ÁUDIOS COM FALLBACK
+  // URLs DOS ÁUDIOS - FORÇANDO CARREGAMENTO DOS ORIGINAIS
   const getAudioUrls = () => {
+    const timestamp = Date.now() // Cache busting
     return {
-      typing: [
-        "/sounds/typewriter-typing-68696.mp3",
-        "https://sociedadesecretacodex.vercel.app/sounds/typewriter-typing-68696.mp3",
-      ],
-      error: [
-        "/sounds/error_sound-221445.mp3",
-        "https://sociedadesecretacodex.vercel.app/sounds/error_sound-221445.mp3",
-      ],
-      wistful: ["/sounds/wistful-1-39105.mp3", "https://sociedadesecretacodex.vercel.app/sounds/wistful-1-39105.mp3"],
+      typing: [`/sounds/typewriter-typing-68696.mp3?v=${timestamp}`, "/sounds/typewriter-typing-68696.mp3"],
+      error: [`/sounds/error_sound-221445.mp3?v=${timestamp}`, "/sounds/error_sound-221445.mp3"],
+      wistful: [`/sounds/wistful-1-39105.mp3?v=${timestamp}`, "/sounds/wistful-1-39105.mp3"],
     }
   }
 
@@ -194,12 +189,13 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
-          }, 8000) // Aumentei o timeout
+          }, 10000) // Aumentei ainda mais o timeout
 
           const onCanPlay = () => {
             clearTimeout(timeout)
-            console.log(`✅ [${type}] SUCESSO na fonte ${i + 1}!`)
+            console.log(`✅ [${type}] SUCESSO na fonte ${i + 1}! Duração: ${audio.duration}s`)
             audio.removeEventListener("canplaythrough", onCanPlay)
+            audio.removeEventListener("loadeddata", onCanPlay)
             audio.removeEventListener("error", onError)
             resolve(audio)
           }
@@ -208,11 +204,14 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             clearTimeout(timeout)
             console.log(`❌ [${type}] ERRO na fonte ${i + 1}: ${e.type || e.message}`)
             audio.removeEventListener("canplaythrough", onCanPlay)
+            audio.removeEventListener("loadeddata", onCanPlay)
             audio.removeEventListener("error", onError)
             reject(new Error(`Erro ao carregar ${type}: ${e.type}`))
           }
 
+          // Múltiplos eventos para garantir carregamento
           audio.addEventListener("canplaythrough", onCanPlay)
+          audio.addEventListener("loadeddata", onCanPlay)
           audio.addEventListener("error", onError)
 
           audio.src = urls[i]
@@ -242,6 +241,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
       try {
         const audioUrls = getAudioUrls()
+        console.log("🎵 URLs dos áudios:", audioUrls)
 
         const [typingAudio, errorAudio, wistfulAudio] = await Promise.allSettled([
           tryLoadAudio(audioUrls.typing, "typing"),
@@ -256,6 +256,11 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           setAudioLoadStatus((prev) => ({ ...prev, typing: true }))
           loadedCount++
           console.log("✅ Áudio de digitação carregado!")
+        } else {
+          console.log(
+            "❌ Falha no áudio de digitação:",
+            typingAudio.status === "rejected" ? typingAudio.reason : "Unknown",
+          )
         }
 
         if (errorAudio.status === "fulfilled" && errorAudio.value) {
@@ -263,6 +268,8 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           setAudioLoadStatus((prev) => ({ ...prev, error: true }))
           loadedCount++
           console.log("✅ Áudio de erro carregado!")
+        } else {
+          console.log("❌ Falha no áudio de erro:", errorAudio.status === "rejected" ? errorAudio.reason : "Unknown")
         }
 
         if (wistfulAudio.status === "fulfilled" && wistfulAudio.value) {
@@ -275,14 +282,19 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             console.log("🎵 Áudio wistful terminou")
             setIsWistfulSound(false)
           })
+        } else {
+          console.log(
+            "❌ Falha no áudio wistful:",
+            wistfulAudio.status === "rejected" ? wistfulAudio.reason : "Unknown",
+          )
         }
 
         if (loadedCount > 0) {
           setAudioMode("original")
-          console.log(`🎵 Modo ORIGINAL ativado! (${loadedCount}/3 áudios)`)
+          console.log(`🎵 Modo ORIGINAL ativado! (${loadedCount}/3 áudios carregados)`)
         } else {
           setAudioMode("synthetic")
-          console.log("🎵 Modo SINTÉTICO ativado!")
+          console.log("🎵 Modo SINTÉTICO ativado! (nenhum áudio carregado)")
         }
 
         setAudioReady(true)
@@ -1291,4 +1303,4 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   )
 }
 
-// Deploy fix - versão 1.1
+// Deploy fix - versão 1.2
