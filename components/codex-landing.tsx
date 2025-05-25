@@ -54,6 +54,10 @@ export default function CodexLanding() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null)
   const wistfulAudioRef = useRef<HTMLAudioElement | null>(null)
 
+  // NOVO: Contexto de áudio para sons sintéticos
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const [audioMode, setAudioMode] = useState<"synthetic" | "original">("synthetic")
+
   const [audioLoadStatus, setAudioLoadStatus] = useState({
     typing: false,
     error: false,
@@ -118,7 +122,46 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     },
   ]
 
-  // 🎵 URLs DOS ÁUDIOS COM DOMÍNIO ABSOLUTO
+  // 🎵 SISTEMA DE ÁUDIO SINTÉTICO COMO FALLBACK
+  const initAudioContext = () => {
+    if (!audioContextRef.current && typeof window !== "undefined") {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+        console.log("🎵 AudioContext inicializado")
+        setAudioReady(true)
+      } catch (error) {
+        console.log("⚠️ AudioContext não suportado:", error)
+      }
+    }
+  }
+
+  // FUNÇÃO PARA CRIAR SONS SINTÉTICOS
+  const playSyntheticSound = (frequency: number, duration: number, type: OscillatorType = "sine", volume = 0.1) => {
+    if (!soundEnabled || !userInteracted || !audioContextRef.current) return
+
+    try {
+      const oscillator = audioContextRef.current.createOscillator()
+      const gainNode = audioContextRef.current.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContextRef.current.destination)
+
+      oscillator.frequency.setValueAtTime(frequency, audioContextRef.current.currentTime)
+      oscillator.type = type
+
+      gainNode.gain.setValueAtTime(volume, audioContextRef.current.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + duration)
+
+      oscillator.start()
+      oscillator.stop(audioContextRef.current.currentTime + duration)
+
+      console.log(`🎵 Som sintético: ${frequency}Hz por ${duration}s`)
+    } catch (error) {
+      console.log("⚠️ Erro ao tocar som sintético:", error)
+    }
+  }
+
+  // URLs DOS ÁUDIOS COM FALLBACK
   const getAudioUrls = () => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
@@ -127,32 +170,27 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         `${baseUrl}/sounds/typewriter-typing-68696.mp3`,
         "/sounds/typewriter-typing-68696.mp3",
         "https://sociedadesecretacodex.vercel.app/sounds/typewriter-typing-68696.mp3",
-        "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
       ],
       error: [
         `${baseUrl}/sounds/error_sound-221445.mp3`,
         "/sounds/error_sound-221445.mp3",
         "https://sociedadesecretacodex.vercel.app/sounds/error_sound-221445.mp3",
-        "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
       ],
       wistful: [
         `${baseUrl}/sounds/wistful-1-39105.mp3`,
         "/sounds/wistful-1-39105.mp3",
         "https://sociedadesecretacodex.vercel.app/sounds/wistful-1-39105.mp3",
-        "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
       ],
     }
   }
 
-  // 🎵 FUNÇÃO PARA TENTAR CARREGAR ÁUDIO COM MÚLTIPLAS FONTES
+  // FUNÇÃO PARA TENTAR CARREGAR ÁUDIO COM FALLBACK SINTÉTICO
   const tryLoadAudio = async (urls: string[], type: string): Promise<HTMLAudioElement | null> => {
     for (let i = 0; i < urls.length; i++) {
       try {
-        console.log(`🎵 AUDIO: 🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}: ${urls[i]}`)
+        console.log(`🎵 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}: ${urls[i]}`)
 
         const audio = new Audio()
-
-        // Configurações otimizadas para Vercel
         audio.crossOrigin = "anonymous"
         audio.preload = "metadata"
         audio.volume = type === "typing" ? 0.3 : 0.4
@@ -161,15 +199,14 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           audio.loop = true
         }
 
-        // Promise para aguardar carregamento
         const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
           const timeout = setTimeout(() => {
-            reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
-          }, 10000) // 10 segundos de timeout
+            reject(new Error(`Timeout ao carregar ${type}`))
+          }, 5000)
 
           const onCanPlay = () => {
             clearTimeout(timeout)
-            console.log(`🎵 AUDIO: ✅ ${type} carregado da fonte ${i + 1}!`)
+            console.log(`🎵 ${type} carregado da fonte ${i + 1}!`)
             audio.removeEventListener("canplaythrough", onCanPlay)
             audio.removeEventListener("error", onError)
             resolve(audio)
@@ -179,13 +216,12 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             clearTimeout(timeout)
             audio.removeEventListener("canplaythrough", onCanPlay)
             audio.removeEventListener("error", onError)
-            reject(new Error(`Erro ao carregar ${type} da fonte ${i + 1}: ${e.type || e.message}`))
+            reject(new Error(`Erro ao carregar ${type}: ${e.type}`))
           }
 
           audio.addEventListener("canplaythrough", onCanPlay)
           audio.addEventListener("error", onError)
 
-          // Tentar carregar
           audio.src = urls[i]
           audio.load()
         })
@@ -193,9 +229,9 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         const loadedAudio = await loadPromise
         return loadedAudio
       } catch (error) {
-        console.log(`🎵 AUDIO: ❌ Fonte ${i + 1} falhou para ${type}: ${error}`)
+        console.log(`🎵 Fonte ${i + 1} falhou para ${type}: ${error}`)
         if (i === urls.length - 1) {
-          console.log(`🎵 AUDIO: ⚠️ Todas as fontes falharam para ${type}`)
+          console.log(`🎵 Todas as fontes falharam para ${type} - usando modo sintético`)
           return null
         }
       }
@@ -203,62 +239,13 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     return null
   }
 
-  // FUNÇÃO PARA ADICIONAR LOG DE DEBUG
-  const addDebugLog = (message: string) => {
-    console.log(`🎵 AUDIO: ${message}`)
-  }
-
-  // FUNÇÃO PARA DETECTAR FIM DE FRASE
-  const isEndOfSentence = (text: string, index: number) => {
-    const char = text[index - 1]
-    const nextChar = text[index]
-
-    // Detecta fim de frase: . ! ? seguido de espaço, quebra de linha ou fim do texto
-    if (
-      (char === "." || char === "!" || char === "?") &&
-      (nextChar === " " || nextChar === "\n" || index === text.length)
-    ) {
-      return true
-    }
-
-    // Detecta quebra de linha dupla (parágrafo)
-    if (char === "\n" && nextChar === "\n") {
-      return true
-    }
-
-    return false
-  }
-
-  // FUNÇÃO PARA DETECTAR INÍCIO DE FRASE
-  const isStartOfSentence = (text: string, index: number) => {
-    // Primeira letra do texto
-    if (index === 0) return true
-
-    const prevChar = text[index - 1]
-    const currentChar = text[index]
-
-    // Após ponto, exclamação ou interrogação + espaço/quebra de linha
-    if ((prevChar === "." || prevChar === "!" || prevChar === "?") && currentChar !== " " && currentChar !== "\n") {
-      return true
-    }
-
-    // Após quebra de linha dupla (novo parágrafo)
-    if (index >= 2 && text[index - 2] === "\n" && text[index - 1] === "\n") {
-      return true
-    }
-
-    // Após aspas de abertura
-    if (prevChar === '"' && currentChar !== " ") {
-      return true
-    }
-
-    return false
-  }
-
-  // 🎵 INICIALIZA OS ÁUDIOS COM MÚLTIPLAS TENTATIVAS
+  // INICIALIZAR SISTEMA DE ÁUDIO
   useEffect(() => {
     const setupAudioSystem = async () => {
-      addDebugLog("🚀 Carregando áudios para domínio personalizado...")
+      console.log("🎵 Inicializando sistema de áudio...")
+
+      // Sempre inicializar AudioContext para sons sintéticos
+      initAudioContext()
 
       try {
         const audioUrls = getAudioUrls()
@@ -275,43 +262,48 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           typingAudioRef.current = typingAudio.value
           setAudioLoadStatus((prev) => ({ ...prev, typing: true }))
           loadedCount++
-          addDebugLog("✅ Áudio de digitação CARREGADO!")
+          console.log("✅ Áudio de digitação carregado!")
         }
 
         if (errorAudio.status === "fulfilled" && errorAudio.value) {
           errorAudioRef.current = errorAudio.value
           setAudioLoadStatus((prev) => ({ ...prev, error: true }))
           loadedCount++
-          addDebugLog("✅ Áudio de erro CARREGADO!")
+          console.log("✅ Áudio de erro carregado!")
         }
 
         if (wistfulAudio.status === "fulfilled" && wistfulAudio.value) {
           wistfulAudioRef.current = wistfulAudio.value
           setAudioLoadStatus((prev) => ({ ...prev, wistful: true }))
           loadedCount++
-          addDebugLog("✅ Áudio wistful CARREGADO!")
+          console.log("✅ Áudio wistful carregado!")
 
           wistfulAudio.value.addEventListener("ended", () => {
-            addDebugLog("🎵 Áudio wistful terminou")
+            console.log("🎵 Áudio wistful terminou")
             setIsWistfulSound(false)
           })
         }
 
-        setAudioReady(true)
-        addDebugLog(`🎵 Sistema ativado! (${loadedCount}/3 áudios carregados)`)
-
-        if (loadedCount === 0) {
-          addDebugLog("⚠️ NENHUM áudio foi carregado - verifique os arquivos!")
+        if (loadedCount > 0) {
+          setAudioMode("original")
+          console.log(`🎵 Modo ORIGINAL ativado! (${loadedCount}/3 áudios)`)
+        } else {
+          setAudioMode("synthetic")
+          console.log("🎵 Modo SINTÉTICO ativado!")
         }
+
+        setAudioReady(true)
       } catch (error) {
-        addDebugLog(`⚠️ Erro no sistema de áudio: ${error}`)
+        console.log(`⚠️ Erro no sistema de áudio: ${error}`)
+        setAudioMode("synthetic")
+        setAudioReady(true)
       }
     }
 
     setupAudioSystem()
 
     return () => {
-      // Limpar todos os áudios
+      // Limpar áudios
       ;[typingAudioRef, errorAudioRef, wistfulAudioRef].forEach((ref) => {
         if (ref.current) {
           try {
@@ -319,123 +311,126 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             ref.current.src = ""
             ref.current = null
           } catch (error) {
-            addDebugLog(`⚠️ Erro ao limpar áudio: ${error}`)
+            console.log(`⚠️ Erro ao limpar áudio: ${error}`)
           }
         }
       })
     }
   }, [])
 
-  // DETECTA PRIMEIRA INTERAÇÃO - VERSÃO MAIS AGRESSIVA
+  // DETECTAR PRIMEIRA INTERAÇÃO
   useEffect(() => {
     const handleFirstInteraction = (event: Event) => {
       if (!userInteracted) {
         setUserInteracted(true)
-        addDebugLog(`👆 Primeira interação detectada! (${event.type})`)
+        console.log(`👆 Primeira interação detectada! (${event.type})`)
 
-        // Tentar tocar um som de teste
-        setTimeout(() => {
-          if (typingAudioRef.current) {
-            try {
-              const testPromise = typingAudioRef.current.play()
-              if (testPromise) {
-                testPromise
-                  .then(() => {
-                    addDebugLog("🎵 Teste de áudio OK!")
-                    typingAudioRef.current?.pause()
-                    typingAudioRef.current!.currentTime = 0
-                  })
-                  .catch((err) => {
-                    addDebugLog(`⚠️ Teste de áudio falhou: ${err}`)
-                  })
-              }
-            } catch (error) {
-              addDebugLog(`⚠️ Erro no teste de áudio: ${error}`)
-            }
-          }
-        }, 100)
+        // Inicializar AudioContext se necessário
+        if (audioContextRef.current?.state === "suspended") {
+          audioContextRef.current.resume()
+        }
       }
     }
 
     if (!userInteracted) {
-      // Eventos mais abrangentes
-      const events = [
-        "click",
-        "touchstart",
-        "touchend",
-        "mousedown",
-        "mouseup",
-        "keydown",
-        "keyup",
-        "scroll",
-        "mousemove",
-        "pointerdown",
-      ]
-
+      const events = ["click", "touchstart", "keydown"]
       events.forEach((event) => {
-        document.addEventListener(event, handleFirstInteraction, {
-          once: true,
-          passive: true,
-          capture: true,
-        })
+        document.addEventListener(event, handleFirstInteraction, { once: true, passive: true })
       })
 
       return () => {
         events.forEach((event) => {
-          document.removeEventListener(event, handleFirstInteraction, true)
+          document.removeEventListener(event, handleFirstInteraction)
         })
       }
     }
   }, [userInteracted])
 
-  // 🎵 FUNÇÃO PARA PARAR TODOS OS SONS ATIVOS
-  const stopAllSounds = () => {
-    // Parar áudios originais
-    ;[typingAudioRef, errorAudioRef, wistfulAudioRef].forEach((ref) => {
-      if (ref.current && !ref.current.paused) {
-        try {
-          ref.current.pause()
-          ref.current.currentTime = 0
-        } catch (e) {
-          // Já parado
-        }
-      }
-    })
+  // FUNÇÃO PARA DETECTAR FIM DE FRASE
+  const isEndOfSentence = (text: string, index: number) => {
+    const char = text[index - 1]
+    const nextChar = text[index]
+
+    if (
+      (char === "." || char === "!" || char === "?") &&
+      (nextChar === " " || nextChar === "\n" || index === text.length)
+    ) {
+      return true
+    }
+
+    if (char === "\n" && nextChar === "\n") {
+      return true
+    }
+
+    return false
   }
 
-  // SUBSTITUIR startTypingSound por:
-  const startTypingSound = () => {
-    addDebugLog("🔊 Iniciando som de digitação...")
+  // FUNÇÃO PARA DETECTAR INÍCIO DE FRASE
+  const isStartOfSentence = (text: string, index: number) => {
+    if (index === 0) return true
 
-    if (!soundEnabled || !userInteracted || !typingAudioRef.current || !audioLoadStatus.typing) {
-      addDebugLog("🔇 Som não disponível")
+    const prevChar = text[index - 1]
+    const currentChar = text[index]
+
+    if ((prevChar === "." || prevChar === "!" || prevChar === "?") && currentChar !== " " && currentChar !== "\n") {
+      return true
+    }
+
+    if (index >= 2 && text[index - 2] === "\n" && text[index - 1] === "\n") {
+      return true
+    }
+
+    if (prevChar === '"' && currentChar !== " ") {
+      return true
+    }
+
+    return false
+  }
+
+  // FUNÇÕES DE SOM UNIFICADAS
+  const startTypingSound = () => {
+    console.log(`🔊 Iniciando som de digitação (${audioMode})...`)
+
+    if (!soundEnabled || !userInteracted) {
+      console.log("🔇 Som não disponível")
       return
     }
 
-    try {
-      const audio = typingAudioRef.current
-      audio.pause()
-      audio.currentTime = 0
+    if (audioMode === "original" && typingAudioRef.current && audioLoadStatus.typing) {
+      try {
+        const audio = typingAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
 
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsTypingSound(true)
-            addDebugLog("🔊 Som de digitação INICIADO!")
-          })
-          .catch((error) => {
-            addDebugLog(`⚠️ Erro no áudio: ${error}`)
-          })
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsTypingSound(true)
+              console.log("🔊 Som de digitação ORIGINAL iniciado!")
+            })
+            .catch((error) => {
+              console.log(`⚠️ Erro no áudio original: ${error}`)
+              // Fallback para sintético
+              playSyntheticSound(800, 0.1, "square", 0.05)
+              setIsTypingSound(true)
+            })
+        }
+      } catch (error) {
+        console.log(`⚠️ Erro na função original: ${error}`)
+        playSyntheticSound(800, 0.1, "square", 0.05)
+        setIsTypingSound(true)
       }
-    } catch (error) {
-      addDebugLog(`⚠️ Erro na função: ${error}`)
+    } else {
+      // Modo sintético
+      playSyntheticSound(800, 0.1, "square", 0.05)
+      setIsTypingSound(true)
+      console.log("🔊 Som de digitação SINTÉTICO iniciado!")
     }
   }
 
-  // FUNÇÃO PARA PARAR SOM DE DIGITAÇÃO
   const stopTypingSound = () => {
-    if (typingAudioRef.current) {
+    if (audioMode === "original" && typingAudioRef.current) {
       try {
         const audio = typingAudioRef.current
         if (!audio.paused) {
@@ -443,44 +438,56 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           audio.currentTime = 0
         }
       } catch (error) {
-        addDebugLog(`⚠️ Erro ao parar som: ${error}`)
+        console.log(`⚠️ Erro ao parar som original: ${error}`)
       }
     }
     setIsTypingSound(false)
-    addDebugLog("🔇 Som de digitação PARADO")
+    console.log("🔇 Som de digitação parado")
   }
 
   const startErrorSound = () => {
-    addDebugLog(`🔊 Iniciando som de ERRO...`)
+    console.log(`🔊 Iniciando som de erro (${audioMode})...`)
 
-    if (!soundEnabled || !userInteracted || !errorAudioRef.current || !audioLoadStatus.error) {
-      addDebugLog("🔇 Som não disponível")
+    if (!soundEnabled || !userInteracted) {
+      console.log("🔇 Som não disponível")
       return
     }
 
-    try {
-      const audio = errorAudioRef.current
-      audio.pause()
-      audio.currentTime = 0
+    if (audioMode === "original" && errorAudioRef.current && audioLoadStatus.error) {
+      try {
+        const audio = errorAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
 
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsErrorSound(true)
-            addDebugLog("🔊 Som de ERRO INICIADO!")
-          })
-          .catch((error) => {
-            addDebugLog(`⚠️ Erro no áudio: ${error}`)
-          })
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsErrorSound(true)
+              console.log("🔊 Som de erro ORIGINAL iniciado!")
+            })
+            .catch((error) => {
+              console.log(`⚠️ Erro no áudio original: ${error}`)
+              // Fallback para sintético
+              playSyntheticSound(200, 2, "square", 0.1)
+              setIsErrorSound(true)
+            })
+        }
+      } catch (error) {
+        console.log(`⚠️ Erro na função original: ${error}`)
+        playSyntheticSound(200, 2, "square", 0.1)
+        setIsErrorSound(true)
       }
-    } catch (error) {
-      addDebugLog(`⚠️ Erro na função: ${error}`)
+    } else {
+      // Modo sintético
+      playSyntheticSound(200, 2, "square", 0.1)
+      setIsErrorSound(true)
+      console.log("🔊 Som de erro SINTÉTICO iniciado!")
     }
   }
 
   const stopErrorSound = () => {
-    if (errorAudioRef.current) {
+    if (audioMode === "original" && errorAudioRef.current) {
       try {
         const audio = errorAudioRef.current
         if (!audio.paused) {
@@ -488,54 +495,69 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           audio.currentTime = 0
         }
       } catch (error) {
-        addDebugLog(`⚠️ Erro ao parar som de erro: ${error}`)
+        console.log(`⚠️ Erro ao parar som de erro: ${error}`)
       }
     }
     setIsErrorSound(false)
-    addDebugLog("🔇 Som de erro PARADO")
+    console.log("🔇 Som de erro parado")
   }
 
   const startWistfulSound = () => {
-    addDebugLog(`🔊 Iniciando som WISTFUL...`)
+    console.log(`🔊 Iniciando som wistful (${audioMode})...`)
 
-    if (!soundEnabled || !userInteracted || !wistfulAudioRef.current || !audioLoadStatus.wistful) {
-      addDebugLog("🔇 Som não disponível")
+    if (!soundEnabled || !userInteracted) {
+      console.log("🔇 Som não disponível")
       return
     }
 
-    try {
-      const audio = wistfulAudioRef.current
-      audio.pause()
-      audio.currentTime = 0
+    if (audioMode === "original" && wistfulAudioRef.current && audioLoadStatus.wistful) {
+      try {
+        const audio = wistfulAudioRef.current
+        audio.pause()
+        audio.currentTime = 0
 
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsWistfulSound(true)
-            addDebugLog("🔊 Som WISTFUL INICIADO!")
-          })
-          .catch((error) => {
-            addDebugLog(`⚠️ Erro no áudio: ${error}`)
-          })
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsWistfulSound(true)
+              console.log("🔊 Som wistful ORIGINAL iniciado!")
+            })
+            .catch((error) => {
+              console.log(`⚠️ Erro no áudio original: ${error}`)
+              // Fallback para sintético
+              playSyntheticSound(523, 1.5, "sine", 0.08)
+              setIsWistfulSound(true)
+              setTimeout(() => setIsWistfulSound(false), 1500)
+            })
+        }
+      } catch (error) {
+        console.log(`⚠️ Erro na função original: ${error}`)
+        playSyntheticSound(523, 1.5, "sine", 0.08)
+        setIsWistfulSound(true)
+        setTimeout(() => setIsWistfulSound(false), 1500)
       }
-    } catch (error) {
-      addDebugLog(`⚠️ Erro na função: ${error}`)
+    } else {
+      // Modo sintético
+      playSyntheticSound(523, 1.5, "sine", 0.08)
+      setIsWistfulSound(true)
+      console.log("🔊 Som wistful SINTÉTICO iniciado!")
+      setTimeout(() => setIsWistfulSound(false), 1500)
     }
   }
 
   const stopWistfulSound = () => {
-    if (wistfulAudioRef.current) {
+    if (audioMode === "original" && wistfulAudioRef.current) {
       try {
         const audio = wistfulAudioRef.current
         audio.pause()
         audio.currentTime = 0
       } catch (error) {
-        addDebugLog(`⚠️ Erro ao parar som wistful: ${error}`)
+        console.log(`⚠️ Erro ao parar som wistful: ${error}`)
       }
     }
     setIsWistfulSound(false)
-    addDebugLog("🔇 Som wistful PARADO")
+    console.log("🔇 Som wistful parado")
   }
 
   // CARROSSEL DE FEEDBACKS - VERSÃO APENAS POR CLIQUE
@@ -853,13 +875,6 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       const timer = setTimeout(() => {
         console.log("🎵 Tentando iniciar som wistful...")
         startWistfulSound()
-
-        const safetyTimer = setTimeout(() => {
-          console.log("⚠️ Timeout de segurança - parando som wistful")
-          stopWistfulSound()
-        }, 2000)
-
-        return () => clearTimeout(safetyTimer)
       }, 500)
 
       return () => clearTimeout(timer)
@@ -1006,13 +1021,6 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     return () => clearTimeout(timer)
   }, [currentPage])
 
-  // LIMPEZA AO DESMONTAR
-  useEffect(() => {
-    return () => {
-      stopAllSounds()
-    }
-  }, [])
-
   const handleEnter = () => {
     stopTypingSound()
 
@@ -1139,7 +1147,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             className="text-sm text-gray-500 cursor-pointer hover:text-gray-300 transition-colors select-none"
             onClick={() => setSoundEnabled(!soundEnabled)}
           >
-            Som : {soundEnabled ? "ON" : "OFF"}
+            Som : {soundEnabled ? "ON" : "OFF"} {audioReady && `(${audioMode})`}
           </div>
         </div>
 
@@ -1206,7 +1214,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           className="text-sm text-gray-500 cursor-pointer hover:text-gray-300 transition-colors select-none"
           onClick={() => setSoundEnabled(!soundEnabled)}
         >
-          Som : {soundEnabled ? "ON" : "OFF"}
+          Som : {soundEnabled ? "ON" : "OFF"} {audioReady && `(${audioMode})`}
         </div>
       </div>
 
