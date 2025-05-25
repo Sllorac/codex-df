@@ -1,0 +1,102 @@
+🌐 COMO SUBIR NO HOSTINGER - PASSO A PASSO
+==========================================
+
+📋 REQUISITOS:
+- Conta no Hostinger
+- Domínio configurado
+- Arquivo index.html (incluído neste pacote)
+
+🚀 PASSO A PASSO:
+
+1️⃣ ACESSE O PAINEL HOSTINGER:
+   - Entre em hpanel.hostinger.com
+   - Faça login na sua conta
+
+2️⃣ VAYA PARA GERENCIADOR DE ARQUIVOS:
+   - Clique em "Gerenciador de Arquivos"
+   - Ou "File Manager"
+
+3️⃣ NAVEGUE PARA A PASTA PÚBLICA:
+   - Abra a pasta "public_html"
+   - Esta é onde ficam os arquivos do seu site
+
+4️⃣ LIMPE A PASTA (SE NECESSÁRIO):
+   - Delete arquivos antigos se houver
+   - Mantenha apenas .htaccess se existir
+
+5️⃣ FAÇA UPLOAD DO ARQUIVO:
+   - Clique em "Upload" ou "Enviar"
+   - Selecione o arquivo "index.html"
+   - Aguarde o upload completar
+
+6️⃣ CONFIGURE COMO PÁGINA INICIAL:
+   - Certifique-se que o arquivo se chama "index.html"
+   - Deve estar na raiz da pasta public_html
+
+7️⃣ TESTE O SITE:
+   - Acesse seu domínio no navegador
+   - Ex: www.seudominio.com
+   - O site deve carregar normalmente
+
+🔧 CONFIGURAÇÕES EXTRAS (OPCIONAL):
+
+📄 CRIAR .htaccess (para melhor performance):
+Crie um arquivo chamado ".htaccess" com este conteúdo:
+
+# Compressão GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
+
+# Cache do navegador
+<IfModule mod_expires.c>
+    ExpiresActive on
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+</IfModule>
+
+🎯 DICAS IMPORTANTES:
+- O arquivo DEVE se chamar "index.html" (minúsculo)
+- Deve estar na pasta public_html (não em subpastas)
+- Aguarde até 24h para propagação DNS completa
+- Teste em modo anônimo/privado do navegador
+
+✅ VERIFICAÇÃO FINAL:
+1. Site carrega corretamente
+2. Efeitos visuais funcionam
+3. Sons tocam após clique
+4. Carrossel de feedbacks funciona
+5. Botão de erro funciona
+6. CTAs redirecionam corretamente
+
+🆘 PROBLEMAS COMUNS:
+
+❌ "Site não carrega":
+- Verifique se o arquivo está em public_html
+- Confirme que se chama "index.html"
+- Aguarde propagação DNS
+
+❌ "Página em branco":
+- Abra F12 no navegador
+- Verifique erros no Console
+- Confirme que o arquivo não está corrompido
+
+❌ "Sons não funcionam":
+- Normal - precisa clicar primeiro na página
+- Teste em diferentes navegadores
+- Sons são sintéticos, não precisam de arquivos
+
+🎉 PRONTO! SEU SITE ESTÁ NO AR!
+
+Agora é só divulgar e começar a vender! 🚀💰

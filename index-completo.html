@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODEX - Agente de Criativos com I.A.</title>
+    <meta name="description" content="A inteligência artificial criou a sala. Você foi o escolhido pra entrar.">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        *::-webkit-scrollbar {
+            display: none;
+        }
+        
+        html {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0a0a0a;
+            color: #fff;
+            overflow-x: hidden;
+            overflow-y: auto;
+            min-height: 100vh;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .screen-border {
+            border: 1px solid rgba(0, 191, 255, 0.8);
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        /* EFEITO DE CHUVA CYBERPUNK */
+        .rain-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+        
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 0;
+            background: linear-gradient(
+                to bottom,
+                transparent,
+                rgba(0, 255, 255, 1),
+                rgba(0, 255, 255, 0.8),
+                rgba(0, 255, 255, 0.6),
+                transparent
+            );
+            border-radius: 50%;
+            animation: falling linear infinite;
+            opacity: 0.9;
+        }
+        
+        .raindrop:nth-child(odd) {
+            background: linear-gradient(
+                to bottom,
+                transparent,
+                rgba(0, 191, 255, 1),
+                rgba(0, 191, 255, 0.8),
+                rgba(0, 191, 255, 0.6),
+                transparent
+            );
+        }
+        
+        .raindrop:nth-child(3n) {
+            background: linear-gradient(
+                to bottom,
+                transparent,
+                rgba(255, 255, 255, 0.9),
+                rgba(255, 255, 255, 0.7),
+                rgba(255, 255, 255, 0.5),
+                transparent
+            );
+        }
+        
+        @keyframes falling {
+            0% {
+                top: -100px;
+                height: 0;
+                opacity: 0;
+            }
+            10% {
+                height: 60px;
+                opacity: 1;
+            }
+            90% {
+                height: 60px;
+                opacity: 1;
+            }
+            100% {
+                top: 100vh;
+                height: 0;
+                opacity: 0;
+            }
+        }
+        
+        /* Diferentes velocidades para cada gota */
+        .raindrop:nth-child(1) { left: 5%; animation-duration: 1.5s; animation-delay: 0s; }
+        .raindrop:nth-child(2) { left: 10%; animation-duration: 1.8s; animation-delay: 0.2s; }
+        .raindrop:nth-child(3) { left: 15%; animation-duration: 1.3s; animation-delay: 0.4s; }
+        .raindrop:nth-child(4) { left: 20%; animation-duration: 2.0s; animation-delay: 0.6s; }
+        .raindrop:nth-child(5) { left: 25%; animation-duration: 1.6s; animation-delay: 0.8s; }
+        .raindrop:nth-child(6) { left: 30%; animation-duration: 1.9s; animation-delay: 1.0s; }
+        .raindrop:nth-child(7) { left: 35%; animation-duration: 1.4s; animation-delay: 1.2s; }
+        .raindrop:nth-child(8) { left: 40%; animation-duration: 1.7s; animation-delay: 1.4s; }
+        .raindrop:nth-child(9) { left: 45%; animation-duration: 2.1s; animation-delay: 1.6s; }
+        .raindrop:nth-child(10) { left: 50%; animation-duration: 1.5s; animation-delay: 1.8s; }
+        .raindrop:nth-child(11) { left: 55%; animation-duration: 1.8s; animation-delay: 2.0s; }
+        .raindrop:nth-child(12) { left: 60%; animation-duration: 1.6s; animation-delay: 2.2s; }
+        .raindrop:nth-child(13) { left: 65%; animation-duration: 1.9s; animation-delay: 2.4s; }
+        .raindrop:nth-child(14) { left: 70%; animation-duration: 1.3s; animation-delay: 2.6s; }
+        .raindrop:nth-child(15) { left: 75%; animation-duration: 2.0s; animation-delay: 2.8s; }
+        .raindrop:nth-child(16) { left: 80%; animation-duration: 1.7s; animation-delay: 3.0s; }
+        .raindrop:nth-child(17) { left: 85%; animation-duration: 1.4s; animation-delay: 3.2s; }
+        .raindrop:nth-child(18) { left: 90%; animation-duration: 1.8s; animation-delay: 3.4s; }
+        .raindrop:nth-child(19) { left: 95%; animation-duration: 1.6s; animation-delay: 3.6s; }
+        .raindrop:nth-child(20) { left: 8%; animation-duration: 1.9s; animation-delay: 3.8s; }
+        
+        /* Mobile - menos gotas */
+        @media (max-width: 768px) {
+            .raindrop:nth-child(n + 13) { display: none; }
+        }
+        
+        @media (max-width: 480px) {
+            .raindrop:nth-child(n + 10) { display: none; }
+        }
+        
+        /* EFEITO DE FALHA SUAVE NO FUNDO */
+        .background-glitch-soft {
+            animation: background-soft-glitch 0.4s ease-in-out;
+        }
+        
+        @keyframes background-soft-glitch {
+            0% {
+                filter: brightness(1) contrast(1) hue-rotate(0deg) saturate(1);
+                transform: translate(0, 0);
+            }
+            20% {
+                filter: brightness(0.7) contrast(1.3) hue-rotate(15deg) saturate(0.8);
+                transform: translate(-1px, 0.5px);
+            }
+            40% {
+                filter: brightness(1.3) contrast(0.9) hue-rotate(-10deg) saturate(1.2);
+                transform: translate(1px, -0.5px);
+            }
+            60% {
+                filter: brightness(0.8) contrast(1.2) hue-rotate(20deg) saturate(0.9);
+                transform: translate(-0.5px, 1px);
+            }
+            80% {
+                filter: brightness(1.1) contrast(1.1) hue-rotate(-5deg) saturate(1.1);
+                transform: translate(0.5px, -0.5px);
+            }
+            100% {
+                filter: brightness(1) contrast(1) hue-rotate(0deg) saturate(1);
+                transform: translate(0, 0);
+            }
+        }
+        
+        /* PÁGINA INICIAL */
+        .initial-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 32px;
+            filter: brightness(110%);
+            transition: all 0.3s ease;
+        }
+        
+        .logo-glitch {
+            animation: logo-glitch-3d 0.2s steps(4, end);
+        }
+        
+        @keyframes logo-glitch-3d {
+            0% {
+                transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
+                filter: brightness(110%) hue-rotate(0deg);
+            }
+            25% {
+                transform: translate3d(-3px, 2px, 5px) rotateX(5deg) rotateY(-5deg);
+                filter: brightness(200%) hue-rotate(90deg) saturate(2);
+            }
+            50% {
+                transform: translate3d(4px, -3px, -5px) rotateX(-5deg) rotateY(5deg);
+                filter: brightness(50%) hue-rotate(180deg) saturate(3);
+            }
+            75% {
+                transform: translate3d(-2px, 4px, 3px) rotateX(3deg) rotateY(-3deg);
+                filter: brightness(150%) hue-rotate(270deg) saturate(1.5);
+            }
+            100% {
+                transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
+                filter: brightness(110%) hue-rotate(360deg);
+            }
+        }
+        
+        .intro-text {
+            font-size: 18px;
+            line-height: 1.6;
+            max-width: 400px;
+            margin-bottom: 32px;
+            transition: all 0.3s ease;
+        }
+        
+        .glitch-text {
+            animation: glitch 0.2s steps(2, end);
+        }
+        
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 #ff0000, -2px 0 #ff0000; }
+            20% { text-shadow: -2px 0 #ff0000, 2px 0 #ff0000; }
+            40% { text-shadow: 2px 0 #ff0000, -2px 0 #ff0000; }
+            60% { text-shadow: -2px 0 #ff0000, 2px 0 #ff0000; }
+            80% { text-shadow: 2px 0 #ff0000, -2px 0 #ff0000; }
+            100% { text-shadow: -2px 0 #ff0000, 2px 0 #ff0000; }
+        }
+        
+        .continue-btn {
+            color: #888;
+            cursor: pointer;
+            font-size: 16px;
+            animation: pulse 2s infinite;
+            transition: color 0.3s ease;
+        }
+        
+        .continue-btn:hover {
+            color: #ccc;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* PÁGINA DO FUNIL */
+        .funnel-page {
+            display: none;
+            background-image: url('images/codex-logo-cyberpunk.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header-logo {
+            width: 48px;
+            height: 48px;
+            filter: brightness(110%);
+            transition: all 0.3s ease;
+        }
+        
+        .sound-toggle {
+            font-size: 14px;
+            color: #888;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.3s ease;
+        }
+        
+        .sound-toggle:hover {
+            color: #ccc;
+        }
+        
+        .content {
+            padding: 16px;
+            padding-bottom: 80px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .text-content {
+            font-size: 16px;
+            line-height: 1.6;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            white-space: pre-wrap;
+        }
+        
+        .cursor {
+            color: #ff4444;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* PREÇOS DESTACADOS */
+        .price-highlight {
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 0 0 12px rgba(255, 255, 0, 1), 0 0 24px rgba(255, 255, 0, 0.8);
+            font-size: 1.1em;
+        }
+        
+        .price-old {
+            color: #ff0000;
+            font-weight: bold;
+            text-decoration: line-through;
+        }
+        
+        .price-new {
+            color: #00ff00;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+        }
+        
+        /* SISTEMA DE ERRO - ULTRA DESTACADO */
+        .error-bar {
+            background: linear-gradient(45deg, #1a0000, #330000, #660000, #330000, #1a0000);
+            background-size: 400% 400%;
+            border: 3px solid #ff0000;
+            border-radius: 8px;
+            padding: 16px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.6), inset 0 0 30px rgba(255, 0, 0, 0.2), 0 0 60px rgba(255, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            animation: error-pulse 2s infinite, error-bg-shift 3s infinite;
+            cursor: pointer;
+            transform: scale(1.02);
+            margin: 24px 0;
+        }
+        
+        .error-bar:hover {
+            border-color: #ff3333;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.8), inset 0 0 50px rgba(255, 0, 0, 0.3), 0 0 80px rgba(255, 0, 0, 0.6);
+            transform: scale(1.05);
+            animation-duration: 1s;
+        }
+        
+        @keyframes error-pulse {
+            0% {
+                box-shadow: 0 0 30px rgba(255, 0, 0, 0.6), inset 0 0 30px rgba(255, 0, 0, 0.2), 0 0 60px rgba(255, 0, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(255, 0, 0, 0.9), inset 0 0 50px rgba(255, 0, 0, 0.4), 0 0 100px rgba(255, 0, 0, 0.7);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(255, 0, 0, 0.6), inset 0 0 30px rgba(255, 0, 0, 0.2), 0 0 60px rgba(255, 0, 0, 0.4);
+            }
+        }
+        
+        @keyframes error-bg-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .error-bar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.4), transparent);
+            animation: scan-urgent 2s infinite;
+        }
+        
+        @keyframes scan-urgent {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .error-content {
+            color: #ff4444;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 0 0 15px rgba(255, 0, 0, 1), 0 0 30px rgba(255, 0, 0, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1.5px;
+            position: relative;
+            z-index: 2;
+            animation: text-urgent-glow 1.5s infinite alternate;
+            text-transform: uppercase;
+        }
+        
+        @keyframes text-urgent-glow {
+            0% {
+                text-shadow: 0 0 15px rgba(255, 0, 0, 1), 0 0 30px rgba(255, 0, 0, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.8);
+                transform: scale(1);
+            }
+            100% {
+                text-shadow: 0 0 25px rgba(255, 0, 0, 1), 0 0 50px rgba(255, 0, 0, 1), 0 0 75px rgba(255, 0, 0, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.8);
+                transform: scale(1.02);
+            }
+        }
+        
+        .error-subtitle {
+            color: #ff6666;
+            font-size: 13px;
+            margin-top: 6px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+            animation: subtitle-blink 3s infinite;
+        }
+        
+        @keyframes subtitle-blink {
+            0%, 85% { opacity: 0.9; }
+            90%, 95% { opacity: 0.4; }
+            100% { opacity: 0.9; }
+        }
+        
+        /* BARRA DE SUCESSO */
+        .success-bar {
+            background: linear-gradient(90deg, #001a00, #003300, #001a00);
+            border: 2px solid #00ff00;
+            border-radius: 4px;
+            padding: 12px 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1);
+            animation: success-pulse 0.5s ease-in-out;
+            margin: 24px 0;
+        }
+        
+        @keyframes success-pulse {
+            0% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .success-content {
+            color: #44ff44;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .success-subtitle {
+            color: #66ff66;
+            font-size: 11px;
+            margin-top: 4px;
+            opacity: 0.8;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* CARROSSEL DE FEEDBACKS */
+        .testimonials {
+            width: 100%;
+            max-width: 500px;
+            margin: 24px auto;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .testimonials-title {
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .testimonial-item {
+            padding: 12px;
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            transition: all 0.5s ease;
+        }
+        
+        .testimonial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .testimonial-id {
+            color: #00ffff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .testimonial-time {
+            color: #888;
+            font-size: 10px;
+        }
+        
+        .testimonial-text {
+            color: #ffffff;
+            font-size: 14px;
+            font-style: italic;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .testimonial-verified {
+            text-align: right;
+            color: #00ff00;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .dot.active {
+            background: #00ffff;
+            transform: scale(1.3);
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+        }
+        
+        .testimonial-list {
+            margin-top: 16px;
+        }
+        
+        .testimonial-list-title {
+            color: #888;
+            font-size: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .testimonial-list-item {
+            color: #ccc;
+            font-size: 11px;
+            margin-bottom: 4px;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+        
+        .testimonial-list-item.active {
+            opacity: 1;
+            font-weight: bold;
+            transform: translateX(4px);
+            background: rgba(0, 255, 255, 0.1);
+            border-color: rgba(0, 255, 255, 0.3);
+        }
+        
+        .testimonial-list-item:hover:not(.active) {
+            background: rgba(0, 255, 255, 0.05);
+            transform: translateX(2px);
+        }
+        
+        /* CTAs */
+        .cta-final {
+            margin-top: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .cta-final:hover {
+            color: #00bfff;
+        }
+        
+        .cta-final-glitch {
+            color: #00ff00;
+            transform: translate(-2px, 1px);
+            text-shadow: 2px 0 #ff0000, -2px 0 #0000ff, 0 2px #00ff00;
+            filter: brightness(1.5) contrast(2) hue-rotate(90deg);
+        }
+        
+        .cta-button {
+            margin-top: 24px;
+            color: #00bfff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            color: #00ffff;
+        }
+        
+        .cta-glitch {
+            animation: glitch-hacker 0.18s steps(3, end);
+        }
+        
+        @keyframes glitch-hacker {
+            0% {
+                text-shadow: 2px 0 #00ff00, -2px 0 #ff0000, 0 2px #00ffff;
+                transform: translate(0);
+            }
+            25% {
+                text-shadow: -2px 0 #00ff00, 2px 0 #ff0000, 0 -2px #00ffff;
+                transform: translate(-1px, 1px);
+            }
+            50% {
+                text-shadow: 3px 0 #00ff00, -3px 0 #ff0000, 2px 0 #00ffff;
+                transform: translate(2px, -1px);
+            }
+            75% {
+                text-shadow: -1px 0 #00ff00, 1px 0 #ff0000, -1px 2px #00ffff;
+                transform: translate(-1px, 0);
+            }
+            100% {
+                text-shadow: 2px 0 #00ff00, -2px 0 #ff0000, 0 2px #00ffff;
+                transform: translate(0);
+            }
+        }
+        
+        /* ESTADOS DE VISIBILIDADE */
+        .hidden {
+            display: none;
+        }
+        
+        .visible {
+            display: block;
+        }
+        
+        /* RESPONSIVO */
+        @media (max-width: 640px) {
+            .screen-border {
+                border-width: 1px;
+            }
+            
+            .intro-text {
+                font-size: 16px;
+            }
+            
+            .text-content {
+                font-size: 14px;
+            }
+            
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .header-logo {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .error-content {
+                font-size: 14px;
+                letter-spacing: 1px;
+            }
+            
+            .error-subtitle {
+                font-size: 11px;
+            }
+            
+            .testimonials {
+                max-width: 100%;
+                margin: 20px auto;
+                padding: 12px;
+            }
+            
+            .testimonial-item {
+                padding: 10px;
+            }
+            
+            .testimonial-text {
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .testimonial-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            
+            .testimonial-time {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- PÁGINA INICIAL -->
+    <div id="initialPage" class="screen-border initial-page">
+        <div style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+            <div id="soundToggleInitial" class="sound-toggle">Som : ON</div>
+        </div>
+        
+        <img id="initialLogo" src="images/codex-logo-clean.png" alt="Logo CODEX" class="logo">
+        
+        <div id="introText" class="intro-text">
+            A inteligência artificial criou a sala. Você foi o escolhido pra entrar.
+        </div>
+        
+        <div id="continueBtn" class="continue-btn hidden">
+            > continuar _
+        </div>
+    </div>
+
+    <!-- PÁGINA DO FUNIL -->
+    <div id="funnelPage" class="screen-border funnel-page">
+        <div class="overlay"></div>
+        
+        <!-- EFEITO DE CHUVA -->
+        <div class="rain-container">
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+            <div class="raindrop"></div>
+        </div>
+        
+        <div class="header">
+            <img id="headerLogo" src="images/codex-logo-clean.png" alt="Logo CODEX" class="header-logo">
+            <div id="soundToggleFunnel" class="sound-toggle">Som : ON</div>
+        </div>
+        
+        <div class="content">
+            <div id="textContent" class="text-content"></div>
+            <span id="cursor" class="cursor hidden">_</span>
+            
+            <!-- BOTÃO DE ERRO -->
+            <div id="errorBar" class="error-bar hidden">
+                <div class="error-content">🔒 >>> ERRO NO SISTEMA - REINTEGRAÇÃO NECESSÁRIA 🔒</div>
+                <div class="error-subtitle">Clique para resolver o problema e continuar</div>
+            </div>
+            
+            <!-- BOTÃO DE SUCESSO -->
+            <div id="successBar" class="success-bar hidden">
+                <div class="success-content">✅ >>> SISTEMA REINTEGRADO COM SUCESSO ✅</div>
+                <div class="success-subtitle">Sistema operando normalmente</div>
+            </div>
+            
+            <!-- CARROSSEL DE TESTIMONIALS -->
+            <div id="testimonials" class="testimonials hidden">
+                <div class="testimonials-title">📊 FEEDBACKS ✅</div>
+                
+                <div id="testimonialItem" class="testimonial-item">
+                    <div class="testimonial-header">
+                        <span id="testimonialId" class="testimonial-id">💬 Resultado #1</span>
+                        <span id="testimonialTime" class="testimonial-time">há 1h</span>
+                    </div>
+                    <div id="testimonialText" class="testimonial-text">"8 VENDAS EM 24H - nem mexi em nada! 🚀"</div>
+                    <div class="testimonial-verified">✅ Verificado</div>
+                </div>
+                
+                <div class="dots">
+                    <div class="dot active" onclick="changeTestimonial(0)"></div>
+                    <div class="dot" onclick="changeTestimonial(1)"></div>
+                    <div class="dot" onclick="changeTestimonial(2)"></div>
+                    <div class="dot" onclick="changeTestimonial(3)"></div>
+                </div>
+                
+                <div class="testimonial-list">
+                    <div class="testimonial-list-title">Últimos resultados (clique para ver):</div>
+                    <div id="testimonialList0" class="testimonial-list-item active" onclick="changeTestimonial(0)">• 8 VENDAS EM 24H - nem mexi em nada! 🚀</div>
+                    <div id="testimonialList1" class="testimonial-list-item" onclick="changeTestimonial(1)">• 5 VARIAÇÕES EM 10 MIN - conversão subiu 300% 📈</div>
+                    <div id="testimonialList2" class="testimonial-list-item" onclick="changeTestimonial(2)">• 12 VENDAS NO PRIMEIRO DIA - mudou tudo! 💰</div>
+                    <div id="testimonialList3" class="testimonial-list-item" onclick="changeTestimonial(3)">• CPA CAIU DE R$45 PARA R$6 - inacreditável! ⚡</div>
+                </div>
+                
+                <div style="color: #666; font-size: 9px; text-align: center; margin-top: 12px; font-style: italic;">
+                    💡 Clique nos resultados acima ou nos pontos para navegar
+                </div>
+            </div>
+            
+            <!-- CTA FINAL -->
+            <div id="ctaFinal" class="cta-final hidden">
+                Clique aqui agora e transforme sua criação de anúncios para sempre.
+            </div>
+            
+            <!-- CTA BUTTON -->
+            <div id="ctaButton" class="cta-button hidden">
+                > acesse_agora_o_sistema.exe
+            </div>
+        </div>
+    </div>
+
+    <!-- ÁUDIOS -->
+    <audio id="typingAudio" loop preload="none">
+        <source src="sounds/typewriter-typing-68696.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="errorAudio" loop preload="none">
+        <source src="sounds/error_sound-221445.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wistfulAudio" preload="none">
+        <source src="sounds/wistful-1-39105.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // VARIÁVEIS GLOBAIS
+        let soundEnabled = true;
+        let userInteracted = false;
+        let currentTestimonial = 0;
+        let typingIndex = 0;
+        let isTyping = false;
+        let systemError = false;
+        let errorFixed = false;
+        let textBeforeError = "";
+        let textAfterError = "";
+        let isPaused = false;
+        let isTypingSound = false;
+        let isErrorSound = false;
+        let isWistfulSound = false;
+        let typingComplete = false;
+        let showFinalCTA = false;
+        let backgroundGlitchInterval;
+        let logoGlitchInterval;
+        let ctaGlitchInterval;
+        let finalCtaGlitchInterval;
+        let initialGlitchInterval;
+        let initialLogoGlitchInterval;
+        
+        // TEXTO COMPLETO
+        const fullText = `Quantas vezes você já perdeu horas tentando criar um criativo que realmente vende?
+
+Abre o Canva, tenta modelar algo, mas nada fica bom. E mesmo quando termina, bate a dúvida: "Será que isso vai converter?"
+
+Agora, por apenas ??,?? reais, você pode acabar com esse ciclo.
+
+Um agente de inteligência artificial cria pra você criativos completos, no estilo que quiser: cinemático, publicitário, Pixar, cartoon, o que estiver no hype.
+
+Você só diz o que quer, pode subir sua imagem, e em 3 minutos recebe dois criativos:
+um com texto, outro com o fundo separado pra testar variações.
+
+Viu só? É isso que eu faço: apenas um comando simples e ela faz criativos. O resultado? Anúncios que não só chamam atenção, mas convertem de verdade.
+
+"Mas isso vende mesmo?"
+
+Subi uma campanha com esses criativos. Resultado?
+116 vendas de um e-book com CPA de R$6,59.
+
+TESTIMONIALS_PLACEHOLDER
+
+Você pode continuar travado, perdendo tempo, ou ativar agora o Agente de Criativos com I.A.
+
+E o melhor: esse plano é só uma degustação — sua porta de entrada pro mundo real dos criativos que convertem e da I.A. que transforma.
+
+Você recebe:
+• O Agente Gerador de Criativos
+• Uma vídeo-aula ensinando como usar
+• Acesso vitalício
+• E tudo isso… por apenas R$17
+
+De R$197 por R$17.
+
+Sem mensalidade. Sem enrolação. Sem desculpa.`;
+
+        // TESTIMONIALS
+        const testimonials = [
+            { id: 1, text: "8 VENDAS EM 24H - nem mexi em nada! 🚀" },
+            { id: 2, text: "5 VARIAÇÕES EM 10 MIN - conversão subiu 300% 📈" },
+            { id: 3, text: "12 VENDAS NO PRIMEIRO DIA - mudou tudo! 💰" },
+            { id: 4, text: "CPA CAIU DE R$45 PARA R$6 - inacreditável! ⚡" }
+        ];
+
+        // ELEMENTOS DOM
+        const initialPage = document.getElementById('initialPage');
+        const funnelPage = document.getElementById('funnelPage');
+        const continueBtn = document.getElementById('continueBtn');
+        const textContent = document.getElementById('textContent');
+        const cursor = document.getElementById('cursor');
+        const errorBar = document.getElementById('errorBar');
+        const successBar = document.getElementById('successBar');
+        const testimonialsDiv = document.getElementById('testimonials');
+        const ctaFinal = document.getElementById('ctaFinal');
+        const ctaButton = document.getElementById('ctaButton');
+        const initialLogo = document.getElementById('initialLogo');
+        const headerLogo = document.getElementById('headerLogo');
+        const introText = document.getElementById('introText');
+        
+        // ÁUDIOS
+        const typingAudio = document.getElementById('typingAudio');
+        const errorAudio = document.getElementById('errorAudio');
+        const wistfulAudio = document.getElementById('wistfulAudio');
+
+        // DETECTAR PRIMEIRA INTERAÇÃO
+        document.addEventListener('click', () => {
+            if (!userInteracted) {
+                userInteracted = true;
+                console.log('Primeira interação detectada');
+            }
+        });
+
+        // FORÇAR SCROLL PARA O TOPO
+        function forceScrollTop() {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        }
+
+        // INICIALIZAÇÃO
+        window.addEventListener('load', () => {
+            forceScrollTop();
+            
+            // Mostrar botão continuar após 1 segundo
+            setTimeout(() => {
+                continueBtn.classList.remove('hidden');
+            }, 1000);
+            
+            // Efeitos de glitch na página inicial
+            setTimeout(() => {
+                initialGlitchInterval = setInterval(() => {
+                    introText.classList.add('glitch-text');
+                    setTimeout(() => introText.classList.remove('glitch-text'), 200);
+                }, 1000);
+                
+                initialLogoGlitchInterval = setInterval(() => {
+                    initialLogo.classList.add('logo-glitch');
+                    setTimeout(() => initialLogo.classList.remove('logo-glitch'), 200);
+                }, 3000);
+            }, 2000);
+        });
+
+        // FUNÇÃO PARA MUDAR PARA PÁGINA DO FUNIL
+        continueBtn.addEventListener('click', () => {
+            // Limpar intervalos da página inicial
+            clearInterval(initialGlitchInterval);
+            clearInterval(initialLogoGlitchInterval);
+            
+            forceScrollTop();
+            initialPage.style.display = 'none';
+            funnelPage.style.display = 'block';
+            
+            setTimeout(() => {
+                forceScrollTop();
+                startTyping();
+                startGlitchEffects();
+            }, 50);
+        });
+
+        // INICIAR EFEITOS DE GLITCH DA PÁGINA DO FUNIL
+        function startGlitchEffects() {
+            // Glitch do logo
+            logoGlitchInterval = setInterval(() => {
+                headerLogo.classList.add('logo-glitch');
+                setTimeout(() => headerLogo.classList.remove('logo-glitch'), 150);
+            }, 1500);
+            
+            // Glitch do fundo a cada 5 segundos
+            backgroundGlitchInterval = setInterval(() => {
+                funnelPage.classList.add('background-glitch-soft');
+                setTimeout(() => funnelPage.classList.remove('background-glitch-soft'), 300);
+            }, 5000);
+        }
+
+        // FUNÇÃO PARA INICIAR DIGITAÇÃO
+        function startTyping() {
+            cursor.classList.remove('hidden');
+            isTyping = true;
+            typingIndex = 0;
+            typeText();
+        }
+
+        // FUNÇÃO PARA DIGITAR TEXTO
+        function typeText() {
+            if (!isTyping || isPaused) return;
+
+            const errorTrigger = "um com texto, outro com o fundo separado pra testar variações.";
+            
+            // Se chegou no erro e ainda não foi ativado
+            if (typingIndex > 0 && fullText.substring(0, typingIndex).includes(errorTrigger) && !systemError && !errorFixed) {
+                stopTypingSound();
+                const currentText = fullText.substring(0, typingIndex);
+                const triggerIndex = currentText.indexOf(errorTrigger);
+                textBeforeError = currentText.substring(0, triggerIndex + errorTrigger.length);
+                textAfterError = fullText.substring(triggerIndex + errorTrigger.length);
+                
+                setTimeout(() => {
+                    systemError = true;
+                    showError();
+                }, 1000);
+                return;
+            }
+
+            // Se o erro foi corrigido, continua digitando o texto após o erro
+            if (errorFixed && textAfterError) {
+                const currentAfterIndex = typingIndex - textBeforeError.length;
+                
+                if (currentAfterIndex < textAfterError.length) {
+                    // Verifica se é início de frase para iniciar som
+                    if (isStartOfSentence(textAfterError, currentAfterIndex) && !isTypingSound && !isWistfulSound) {
+                        startTypingSound();
+                    }
+
+                    // Verifica se chegou ao fim de uma frase
+                    if (isEndOfSentence(textAfterError, currentAfterIndex)) {
+                        stopTypingSound();
+                        isPaused = true;
+                        setTimeout(() => {
+                            isPaused = false;
+                            typingIndex++;
+                            typeText();
+                        }, 1000);
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        typingIndex++;
+                        typeText();
+                    }, 30);
+                    return;
+                } else {
+                    // Digitação do texto após erro terminou
+                    stopTypingSound();
+                    cursor.classList.add('hidden');
+                    isTyping = false;
+                    typingComplete = true;
+                    showFinalCTA();
+                }
+                return;
+            }
+
+            // Verificar se chegou no placeholder dos testimonials
+            const currentText = fullText.substring(0, typingIndex);
+            if (currentText.includes('TESTIMONIALS_PLACEHOLDER')) {
+                const beforeTestimonials = currentText.replace('TESTIMONIALS_PLACEHOLDER', '');
+                textContent.innerHTML = formatText(beforeTestimonials);
+                showTestimonials();
+                
+                setTimeout(() => {
+                    typingIndex = fullText.indexOf('TESTIMONIALS_PLACEHOLDER') + 'TESTIMONIALS_PLACEHOLDER'.length;
+                    typeText();
+                }, 2000);
+                return;
+            }
+
+            // Continuar digitando normalmente (antes do erro)
+            if (typingIndex < fullText.length && !systemError) {
+                // Iniciar som no início de frase
+                if (isStartOfSentence(fullText, typingIndex) && !isTypingSound) {
+                    startTypingSound();
+                }
+
+                textContent.innerHTML = formatText(fullText.substring(0, typingIndex + 1));
+                
+                // Parar som no fim de frase
+                if (isEndOfSentence(fullText, typingIndex + 1)) {
+                    stopTypingSound();
+                    isPaused = true;
+                    setTimeout(() => {
+                        isPaused = false;
+                        typingIndex++;
+                        typeText();
+                    }, 1000);
+                } else {
+                    setTimeout(() => {
+                        typingIndex++;
+                        typeText();
+                    }, 30);
+                }
+            } else if (typingIndex >= fullText.length && !systemError) {
+                // Digitação completa (sem erro)
+                stopTypingSound();
+                cursor.classList.add('hidden');
+                isTyping = false;
+                typingComplete = true;
+                showFinalCTA();
+            }
+        }
+
+        // FUNÇÃO PARA FORMATAR TEXTO
+        function formatText(text) {
+            return text
+                .replace(/(\?\?,\?\?)/g, '<span class="price-highlight">$1</span>')
+                .replace(/(De )(R\$197)( por )(R\$17)(\.)/g, '$1<span class="price-old">$2</span>$3<span class="price-new">$4</span>$5')
+                .replace(/(por apenas )(R\$17)( reais)/g, '$1<span class="price-new">$2</span>$3')
+                .replace(/\n/g, '<br>');
+        }
+
+        // FUNÇÃO PARA DETECTAR INÍCIO DE FRASE
+        function isStartOfSentence(text, index) {
+            if (index === 0) return true;
+            const prevChar = text[index - 1];
+            const currentChar = text[index];
+            return (prevChar === '.' || prevChar === '!' || prevChar === '?') && currentChar !== ' ' && currentChar !== '\n';
+        }
+
+        // FUNÇÃO PARA DETECTAR FIM DE FRASE
+        function isEndOfSentence(text, index) {
+            const char = text[index - 1];
+            const nextChar = text[index];
+            return (char === '.' || char === '!' || char === '?') && (nextChar === ' ' || nextChar === '\n' || index === text.length);
+        }
+
+        // FUNÇÕES DE SOM
+        function startTypingSound() {
+            if (!soundEnabled || !userInteracted || isTypingSound) return;
+            try {
+                typingAudio.currentTime = 0;
+                typingAudio.play();
+                isTypingSound = true;
+                console.log('Som de digitação iniciado');
+            } catch (e) {
+                console.log('Erro ao tocar som de digitação:', e);
+            }
+        }
+
+        function stopTypingSound() {
+            if (!isTypingSound) return;
+            try {
+                typingAudio.pause();
+                typingAudio.currentTime = 0;
+                isTypingSound = false;
+                console.log('Som de digitação parado');
+            } catch (e) {
+                console.log('Erro ao parar som de digitação:', e);
+            }
+        }
+
+        function startErrorSound() {
+            if (!soundEnabled || !userInteracted || isErrorSound) return;
+            try {
+                errorAudio.currentTime = 0;
+                errorAudio.play();
+                isErrorSound = true;
+                console.log('Som de erro iniciado');
+            } catch (e) {
+                console.log('Erro ao tocar som de erro:', e);
+            }
+        }
+
+        function stopErrorSound() {
+            if (!isErrorSound) return;
+            try {
+                errorAudio.pause();
+                errorAudio.currentTime = 0;
+                isErrorSound = false;
+                console.log('Som de erro parado');
+            } catch (e) {
+                console.log('Erro ao parar som de erro:', e);
+            }
+        }
+
+        function startWistfulSound() {
+            if (!soundEnabled || !userInteracted || isWistfulSound) return;
+            try {
+                wistfulAudio.currentTime = 0;
+                wistfulAudio.play();
+                isWistfulSound = true;
+                console.log('Som wistful iniciado');
+                
+                // Para automaticamente após 2 segundos
+                setTimeout(() => {
+                    stopWistfulSound();
+                }, 2000);
+            } catch (e) {
+                console.log('Erro ao tocar som wistful:', e);
+            }
+        }
+
+        function stopWistfulSound() {
+            if (!isWistfulSound) return;
+            try {
+                wistfulAudio.pause();
+                wistfulAudio.currentTime = 0;
+                isWistfulSound = false;
+                console.log('Som wistful parado');
+            } catch (e) {
+                console.log('Erro ao parar som wistful:', e);
+            }
+        }
+
+        // FUNÇÃO PARA MOSTRAR ERRO
+        function showError() {
+            textContent.innerHTML = formatText(textBeforeError);
+            errorBar.classList.remove('hidden');
+            startErrorSound();
+        }
+
+        // FUNÇÃO PARA CORRIGIR ERRO
+        errorBar.addEventListener('click', () => {
+            if (!errorFixed) {
+                stopErrorSound();
+                errorFixed = true;
+                errorBar.classList.add('hidden');
+                successBar.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    startWistfulSound();
+                }, 500);
+                
+                setTimeout(() => {
+                    successBar.classList.add('hidden');
+                    typingIndex = textBeforeError.length;
+                    isTyping = true;
+                    cursor.classList.remove('hidden');
+                    typeText();
+                }, 1500);
+            }
+        });
+
+        // FUNÇÃO PARA MOSTRAR TESTIMONIALS
+        function showTestimonials() {
+            testimonialsDiv.classList.remove('hidden');
+            updateTestimonial();
+        }
+
+        // FUNÇÃO PARA MUDAR TESTIMONIAL
+        function changeTestimonial(index) {
+            currentTestimonial = index;
+            updateTestimonial();
+        }
+
+        // FUNÇÃO PARA ATUALIZAR TESTIMONIAL
+        function updateTestimonial() {
+            const testimonial = testimonials[currentTestimonial];
+            document.getElementById('testimonialId').textContent = `💬 Resultado #${testimonial.id}`;
+            document.getElementById('testimonialTime').textContent = `há ${currentTestimonial + 1}h`;
+            document.getElementById('testimonialText').textContent = `"${testimonial.text}"`;
+            
+            // Atualizar dots
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentTestimonial);
+            });
+            
+            // Atualizar lista
+            for (let i = 0; i < testimonials.length; i++) {
+                const listItem = document.getElementById(`testimonialList${i}`);
+                if (listItem) {
+                    listItem.classList.toggle('active', i === currentTestimonial);
+                }
+            }
+        }
+
+        // FUNÇÃO PARA MOSTRAR CTA FINAL
+        function showFinalCTA() {
+            setTimeout(() => {
+                ctaFinal.classList.remove('hidden');
+                ctaButton.classList.remove('hidden');
+                showFinalCTA = true;
+                
+                // Glitch do CTA final
+                setTimeout(() => {
+                    finalCtaGlitchInterval = setInterval(() => {
+                        ctaFinal.classList.add('cta-final-glitch');
+                        setTimeout(() => ctaFinal.classList.remove('cta-final-glitch'), 300);
+                    }, 3000);
+                }, 1000);
+                
+                // Glitch do CTA button
+                ctaGlitchInterval = setInterval(() => {
+                    ctaButton.classList.add('cta-glitch');
+                    setTimeout(() => ctaButton.classList.remove('cta-glitch'), 180);
+                }, 2000);
+            }, 500);
+        }
+
+        // TOGGLE DE SOM
+        document.getElementById('soundToggleInitial').addEventListener('click', toggleSound);
+        document.getElementById('soundToggleFunnel').addEventListener('click', toggleSound);
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const status = soundEnabled ? 'ON' : 'OFF';
+            document.getElementById('soundToggleInitial').textContent = `Som : ${status}`;
+            document.getElementById('soundToggleFunnel').textContent = `Som : ${status}`;
+            
+            if (!soundEnabled) {
+                stopTypingSound();
+                stopErrorSound();
+                stopWistfulSound();
+            }
+        }
+
+        // CTAs
+        ctaFinal.addEventListener('click', () => {
+            console.log('CTA Final clicado!');
+            window.open('https://seu-link-de-checkout.com', '_blank');
+        });
+
+        ctaButton.addEventListener('click', () => {
+            console.log('CTA Button clicado!');
+            window.open('https://seu-link-de-checkout.com', '_blank');
+        });
+
+        // LIMPEZA AO SAIR
+        window.addEventListener('beforeunload', () => {
+            clearInterval(backgroundGlitchInterval);
+            clearInterval(logoGlitchInterval);
+            clearInterval(ctaGlitchInterval);
+            clearInterval(finalCtaGlitchInterval);
+            clearInterval(initialGlitchInterval);
+            clearInterval(initialLogoGlitchInterval);
+        });
+    </script>
+</body>
+</html>
