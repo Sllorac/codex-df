@@ -128,16 +128,19 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   const ORIGINAL_AUDIO_URLS = {
     typing: [
       "/sounds/typewriter-typing-68696.mp3",
+      "/sounds/typewriter-typing.mp3", // fallback local
       "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/typewriter-typing-68696.mp3",
       "https://github.com/Sllorac/codex-df/raw/main/public/sounds/typewriter-typing-68696.mp3",
     ],
     error: [
       "/sounds/error_sound-221445.mp3",
+      "/sounds/error_sound.mp3", // fallback local
       "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/error_sound-221445.mp3",
       "https://github.com/Sllorac/codex-df/raw/main/public/sounds/error_sound-221445.mp3",
     ],
     wistful: [
       "/sounds/wistful-1-39105.mp3",
+      "/sounds/wistful.mp3", // fallback local
       "https://raw.githubusercontent.com/Sllorac/codex-df/main/public/sounds/wistful-1-39105.mp3",
       "https://github.com/Sllorac/codex-df/raw/main/public/sounds/wistful-1-39105.mp3",
     ],
@@ -151,9 +154,9 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
         const audio = new Audio()
 
-        // Configurações mais permissivas
+        // Configurações MAIS permissivas
         audio.crossOrigin = "anonymous"
-        audio.preload = "auto"
+        audio.preload = "metadata" // Mudança aqui
         audio.volume = type === "typing" ? 0.3 : 0.4
 
         if (type === "typing" || type === "error") {
@@ -164,17 +167,17 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
-          }, 5000) // 5 segundos de timeout
+          }, 8000) // Aumentar timeout para 8 segundos
 
-          audio.addEventListener(
-            "canplaythrough",
-            () => {
-              clearTimeout(timeout)
-              addDebugLog(`✅ ${type} carregado da fonte ${i + 1}!`)
-              resolve(audio)
-            },
-            { once: true },
-          )
+          // Aceitar tanto canplaythrough quanto canplay
+          const handleSuccess = () => {
+            clearTimeout(timeout)
+            addDebugLog(`✅ ${type} carregado da fonte ${i + 1}!`)
+            resolve(audio)
+          }
+
+          audio.addEventListener("canplaythrough", handleSuccess, { once: true })
+          audio.addEventListener("canplay", handleSuccess, { once: true })
 
           audio.addEventListener(
             "error",
