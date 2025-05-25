@@ -54,8 +54,8 @@ export default function CodexLanding() {
   const errorAudioRef = useRef<HTMLAudioElement | null>(null)
   const wistfulAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  // SISTEMA DE ÁUDIO 100% SINTÉTICO
-  const [audioMode, setAudioMode] = useState<"synthetic">("synthetic")
+  // SISTEMA DE ÁUDIO - APENAS ORIGINAIS
+  const [audioMode, setAudioMode] = useState<"original">("original")
 
   const copy = `Quantas vezes você já perdeu horas tentando criar um criativo que realmente vende?
 
@@ -190,7 +190,13 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
       console.log("🎵 Inicializando sistema de áudio ORIGINAL...")
 
       try {
-        const audioUrls = getAudioUrls()
+        const baseUrl = window.location.origin
+        const audioUrls = {
+          typing: [`${baseUrl}/sounds/typewriter-typing-68696.mp3`],
+          error: [`${baseUrl}/sounds/error_sound-221445.mp3`],
+          wistful: [`${baseUrl}/sounds/wistful-1-39105.mp3`],
+        }
+
         console.log("🎵 URLs dos áudios:", audioUrls)
 
         const [typingAudio, errorAudio, wistfulAudio] = await Promise.allSettled([
@@ -224,11 +230,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           })
         }
 
-        if (loadedCount > 0) {
-          setAudioMode("original")
-          console.log(`🎵 Modo ORIGINAL ativado! (${loadedCount}/3 áudios carregados)`)
-        }
-
+        console.log(`🎵 Sistema ORIGINAL: ${loadedCount}/3 áudios carregados`)
         setAudioReady(true)
       } catch (error) {
         console.log(`⚠️ Erro no sistema de áudio: ${error}`)
@@ -303,144 +305,125 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
     return false
   }
 
-  // FUNÇÕES DE SOM ORIGINAIS
+  // FUNÇÕES DE SOM ORIGINAIS - MELHORADAS
   const startTypingSound = () => {
-    console.log("🔊 Iniciando som de digitação ORIGINAL...")
-
-    if (!soundEnabled || !userInteracted) {
-      console.log("🔇 Som não disponível")
+    if (!soundEnabled || !userInteracted || !typingAudioRef.current) {
+      console.log("🔇 Som de digitação não disponível")
       return
     }
 
-    if (typingAudioRef.current) {
-      try {
-        const audio = typingAudioRef.current
-        audio.pause()
-        audio.currentTime = 0
+    try {
+      const audio = typingAudioRef.current
+      audio.pause()
+      audio.currentTime = 0
 
-        const playPromise = audio.play()
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsTypingSound(true)
-              console.log("🔊 Som de digitação ORIGINAL iniciado!")
-            })
-            .catch((error) => {
-              console.log(`⚠️ Erro no áudio original: ${error}`)
-            })
-        }
-      } catch (error) {
-        console.log(`⚠️ Erro na função original: ${error}`)
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsTypingSound(true)
+            console.log("🔊 Som de digitação ORIGINAL iniciado!")
+          })
+          .catch((error) => {
+            console.log(`⚠️ Erro no áudio original: ${error}`)
+          })
       }
+    } catch (error) {
+      console.log(`⚠️ Erro na função original: ${error}`)
     }
   }
 
   const stopTypingSound = () => {
-    if (typingAudioRef.current) {
+    if (typingAudioRef.current && !typingAudioRef.current.paused) {
       try {
-        const audio = typingAudioRef.current
-        if (!audio.paused) {
-          audio.pause()
-          audio.currentTime = 0
-        }
+        typingAudioRef.current.pause()
+        typingAudioRef.current.currentTime = 0
+        console.log("🔇 Som de digitação PARADO")
       } catch (error) {
-        console.log(`⚠️ Erro ao parar som original: ${error}`)
+        console.log(`⚠️ Erro ao parar som: ${error}`)
       }
     }
     setIsTypingSound(false)
-    console.log("🔇 Som de digitação parado")
   }
 
   const startErrorSound = () => {
-    console.log("🔊 Iniciando som de erro ORIGINAL...")
-
-    if (!soundEnabled || !userInteracted) {
-      console.log("🔇 Som não disponível")
+    if (!soundEnabled || !userInteracted || !errorAudioRef.current) {
+      console.log("🔇 Som de erro não disponível")
       return
     }
 
-    if (errorAudioRef.current) {
-      try {
-        const audio = errorAudioRef.current
-        audio.pause()
-        audio.currentTime = 0
+    try {
+      const audio = errorAudioRef.current
+      audio.pause()
+      audio.currentTime = 0
 
-        const playPromise = audio.play()
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsErrorSound(true)
-              console.log("🔊 Som de erro ORIGINAL iniciado!")
-            })
-            .catch((error) => {
-              console.log(`⚠️ Erro no áudio original: ${error}`)
-            })
-        }
-      } catch (error) {
-        console.log(`⚠️ Erro na função original: ${error}`)
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsErrorSound(true)
+            console.log("🔊 Som de erro ORIGINAL iniciado!")
+          })
+          .catch((error) => {
+            console.log(`⚠️ Erro no áudio de erro: ${error}`)
+          })
       }
+    } catch (error) {
+      console.log(`⚠️ Erro na função de erro: ${error}`)
     }
   }
 
   const stopErrorSound = () => {
-    if (errorAudioRef.current) {
+    if (errorAudioRef.current && !errorAudioRef.current.paused) {
       try {
-        const audio = errorAudioRef.current
-        if (!audio.paused) {
-          audio.pause()
-          audio.currentTime = 0
-        }
+        errorAudioRef.current.pause()
+        errorAudioRef.current.currentTime = 0
+        console.log("🔇 Som de erro PARADO")
       } catch (error) {
         console.log(`⚠️ Erro ao parar som de erro: ${error}`)
       }
     }
     setIsErrorSound(false)
-    console.log("🔇 Som de erro parado")
   }
 
   const startWistfulSound = () => {
-    console.log("🔊 Iniciando som wistful ORIGINAL...")
-
-    if (!soundEnabled || !userInteracted) {
-      console.log("🔇 Som não disponível")
+    if (!soundEnabled || !userInteracted || !wistfulAudioRef.current) {
+      console.log("🔇 Som wistful não disponível")
       return
     }
 
-    if (wistfulAudioRef.current) {
-      try {
-        const audio = wistfulAudioRef.current
-        audio.pause()
-        audio.currentTime = 0
+    try {
+      const audio = wistfulAudioRef.current
+      audio.pause()
+      audio.currentTime = 0
 
-        const playPromise = audio.play()
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsWistfulSound(true)
-              console.log("🔊 Som wistful ORIGINAL iniciado!")
-            })
-            .catch((error) => {
-              console.log(`⚠️ Erro no áudio original: ${error}`)
-            })
-        }
-      } catch (error) {
-        console.log(`⚠️ Erro na função original: ${error}`)
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsWistfulSound(true)
+            console.log("🔊 Som wistful ORIGINAL iniciado!")
+          })
+          .catch((error) => {
+            console.log(`⚠️ Erro no áudio wistful: ${error}`)
+          })
       }
+    } catch (error) {
+      console.log(`⚠️ Erro na função wistful: ${error}`)
     }
   }
 
   const stopWistfulSound = () => {
-    if (wistfulAudioRef.current) {
+    if (wistfulAudioRef.current && !wistfulAudioRef.current.paused) {
       try {
-        const audio = wistfulAudioRef.current
-        audio.pause()
-        audio.currentTime = 0
+        wistfulAudioRef.current.pause()
+        wistfulAudioRef.current.currentTime = 0
+        console.log("🔇 Som wistful PARADO")
       } catch (error) {
         console.log(`⚠️ Erro ao parar som wistful: ${error}`)
       }
     }
     setIsWistfulSound(false)
-    console.log("🔇 Som wistful parado")
   }
 
   // CARROSSEL DE FEEDBACKS
@@ -1030,7 +1013,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             className="text-sm text-gray-500 cursor-pointer hover:text-gray-300 transition-colors select-none"
             onClick={() => setSoundEnabled(!soundEnabled)}
           >
-            Som : {soundEnabled ? "ON" : "OFF"} {audioReady && `(${audioMode})`}
+            Som : {soundEnabled ? "ON" : "OFF"} (original)
           </div>
         </div>
 
@@ -1097,7 +1080,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
           className="text-sm text-gray-500 cursor-pointer hover:text-gray-300 transition-colors select-none"
           onClick={() => setSoundEnabled(!soundEnabled)}
         >
-          Som : {soundEnabled ? "ON" : "OFF"} {audioReady && `(${audioMode})`}
+          Som : {soundEnabled ? "ON" : "OFF"} (original)
         </div>
       </div>
 
