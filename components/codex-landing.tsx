@@ -163,24 +163,16 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
   // URLs DOS ÁUDIOS COM FALLBACK
   const getAudioUrls = () => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-
     return {
       typing: [
-        `${baseUrl}/sounds/typewriter-typing-68696.mp3`,
         "/sounds/typewriter-typing-68696.mp3",
         "https://sociedadesecretacodex.vercel.app/sounds/typewriter-typing-68696.mp3",
       ],
       error: [
-        `${baseUrl}/sounds/error_sound-221445.mp3`,
         "/sounds/error_sound-221445.mp3",
         "https://sociedadesecretacodex.vercel.app/sounds/error_sound-221445.mp3",
       ],
-      wistful: [
-        `${baseUrl}/sounds/wistful-1-39105.mp3`,
-        "/sounds/wistful-1-39105.mp3",
-        "https://sociedadesecretacodex.vercel.app/sounds/wistful-1-39105.mp3",
-      ],
+      wistful: ["/sounds/wistful-1-39105.mp3", "https://sociedadesecretacodex.vercel.app/sounds/wistful-1-39105.mp3"],
     }
   }
 
@@ -188,11 +180,11 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   const tryLoadAudio = async (urls: string[], type: string): Promise<HTMLAudioElement | null> => {
     for (let i = 0; i < urls.length; i++) {
       try {
-        console.log(`🎵 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}: ${urls[i]}`)
+        console.log(`🎵 [${type}] Tentando fonte ${i + 1}/${urls.length}: ${urls[i]}`)
 
         const audio = new Audio()
         audio.crossOrigin = "anonymous"
-        audio.preload = "metadata"
+        audio.preload = "auto"
         audio.volume = type === "typing" ? 0.3 : 0.4
 
         if (type === "typing" || type === "error") {
@@ -201,12 +193,12 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
         const loadPromise = new Promise<HTMLAudioElement>((resolve, reject) => {
           const timeout = setTimeout(() => {
-            reject(new Error(`Timeout ao carregar ${type}`))
-          }, 5000)
+            reject(new Error(`Timeout ao carregar ${type} da fonte ${i + 1}`))
+          }, 8000) // Aumentei o timeout
 
           const onCanPlay = () => {
             clearTimeout(timeout)
-            console.log(`🎵 ${type} carregado da fonte ${i + 1}!`)
+            console.log(`✅ [${type}] SUCESSO na fonte ${i + 1}!`)
             audio.removeEventListener("canplaythrough", onCanPlay)
             audio.removeEventListener("error", onError)
             resolve(audio)
@@ -214,6 +206,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
           const onError = (e: any) => {
             clearTimeout(timeout)
+            console.log(`❌ [${type}] ERRO na fonte ${i + 1}: ${e.type || e.message}`)
             audio.removeEventListener("canplaythrough", onCanPlay)
             audio.removeEventListener("error", onError)
             reject(new Error(`Erro ao carregar ${type}: ${e.type}`))
@@ -229,9 +222,9 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         const loadedAudio = await loadPromise
         return loadedAudio
       } catch (error) {
-        console.log(`🎵 Fonte ${i + 1} falhou para ${type}: ${error}`)
+        console.log(`⚠️ [${type}] Fonte ${i + 1} falhou: ${error}`)
         if (i === urls.length - 1) {
-          console.log(`🎵 Todas as fontes falharam para ${type} - usando modo sintético`)
+          console.log(`🔄 [${type}] Todas as fontes falharam - modo sintético ativado`)
           return null
         }
       }
