@@ -45,9 +45,6 @@ export default function CodexLanding() {
   const [audioReady, setAudioReady] = useState(false)
   const [userInteracted, setUserInteracted] = useState(false)
 
-  // ESTADOS DE DEBUG
-  const [audioDebug, setAudioDebug] = useState<string[]>([])
-
   // Adicionar novos estados após os estados existentes
   const [isErrorSound, setIsErrorSound] = useState(false)
   const [isWistfulSound, setIsWistfulSound] = useState(false)
@@ -147,7 +144,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
   const tryLoadAudio = async (urls: string[], type: string): Promise<HTMLAudioElement | null> => {
     for (let i = 0; i < urls.length; i++) {
       try {
-        addDebugLog(`🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}`)
+        console.log(`🎵 AUDIO: 🔄 Tentando carregar ${type} da fonte ${i + 1}/${urls.length}`)
 
         const audio = new Audio()
 
@@ -170,7 +167,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             "canplaythrough",
             () => {
               clearTimeout(timeout)
-              addDebugLog(`✅ ${type} carregado da fonte ${i + 1}!`)
+              console.log(`🎵 AUDIO: ✅ ${type} carregado da fonte ${i + 1}!`)
               resolve(audio)
             },
             { once: true },
@@ -193,9 +190,9 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
         const loadedAudio = await loadPromise
         return loadedAudio
       } catch (error) {
-        addDebugLog(`❌ Fonte ${i + 1} falhou para ${type}: ${error}`)
+        console.log(`🎵 AUDIO: ❌ Fonte ${i + 1} falhou para ${type}: ${error}`)
         if (i === urls.length - 1) {
-          addDebugLog(`⚠️ Todas as fontes falharam para ${type}`)
+          console.log(`🎵 AUDIO: ⚠️ Todas as fontes falharam para ${type}`)
           return null
         }
       }
@@ -205,8 +202,7 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
 
   // FUNÇÃO PARA ADICIONAR LOG DE DEBUG
   const addDebugLog = (message: string) => {
-    console.log(`🎵 AUDIO HÍBRIDO: ${message}`)
-    setAudioDebug((prev) => [...prev.slice(-5), `${new Date().toLocaleTimeString()}: ${message}`])
+    console.log(`🎵 AUDIO: ${message}`)
   }
 
   // FUNÇÃO PARA DETECTAR FIM DE FRASE
@@ -1137,25 +1133,6 @@ Sem mensalidade. Sem enrolação. Sem desculpa.`
             Som : {soundEnabled ? "ON" : "OFF"}
           </div>
         </div>
-
-        {/* DEBUG PANEL - MOSTRA STATUS DOS ÁUDIOS HÍBRIDOS */}
-        {audioDebug.length > 0 && (
-          <div className="absolute top-4 left-4 z-10 bg-black bg-opacity-80 p-2 rounded text-xs text-green-400 max-w-xs">
-            <div className="font-bold mb-1">🎵 ÁUDIO HÍBRIDO:</div>
-            <div className="text-xs mb-1">Modo: 🎵 ORIGINAL</div>
-            <div className="text-xs mb-1">Interação: {userInteracted ? "✅" : "❌"}</div>
-            <div className="text-xs mb-1">Som: {soundEnabled ? "ON" : "OFF"}</div>
-            <div className="text-xs mb-1">
-              Status: T:{audioLoadStatus.typing ? "✅" : "❌"} E:{audioLoadStatus.error ? "✅" : "❌"} W:
-              {audioLoadStatus.wistful ? "✅" : "❌"}
-            </div>
-            {audioDebug.slice(-2).map((log, index) => (
-              <div key={index} className="mb-1 text-xs">
-                {log}
-              </div>
-            ))}
-          </div>
-        )}
 
         <div className="flex flex-col items-center justify-center min-h-screen px-6">
           <div className="flex flex-col items-center text-center space-y-8">
